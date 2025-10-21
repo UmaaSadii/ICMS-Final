@@ -9,7 +9,7 @@ import StudentManagement from '../components/pages/StudentManagement';
 import DepartmentManagement from '../components/pages/DepartmentManagement';
 import CourseManagement from '../components/pages/CourseManagement';
 import TeacherManagement from '../components/pages/TeacherManagement';
-import FeeManagement from '../components/FeeManagement';
+
 import MessagingSystem from '../components/messaging/MessagingSystem';
 import SystemHealthWidget from '../components/dashboard/SystemHealthWidget';
 import NotificationPanel from '../components/dashboard/NotificationPanel';
@@ -19,8 +19,6 @@ import ActivityFeed from '../components/dashboard/ActivityFeed';
 import CalendarWidget from '../components/dashboard/CalendarWidget';
 import WeatherWidget from '../components/dashboard/WeatherWidget';
 import { jsPDF } from 'jspdf';
-import LibraryManagement from '../components/pages/LibraryManagement';
-import TransportManagement from '../components/pages/TransportManagement';
 
 import {
   Chart as ChartJS,
@@ -48,7 +46,7 @@ ChartJS.register(
   Legend
 );
 
-type TabId = 'dashboard' | 'students' | 'instructors' | 'departments' | 'courses' | 'results' | 'fees' | 'events' | 'messaging' | 'scholarships'|'library'|'transport';
+type TabId = 'dashboard' | 'students' | 'instructors' | 'departments' | 'courses' | 'results' | 'events' | 'messaging' | 'scholarships';
 
 const AdminDashboard = () => {
   const { currentUser, logout } = useAuth();
@@ -549,13 +547,11 @@ const AdminDashboard = () => {
       { id: 'instructors', label: 'Instructors', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
       { id: 'departments', label: 'Departments', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
       { id: 'results', label: 'Results', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-      { id: 'fees', label: 'Fees', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+      
       { id: 'events', label: 'Events', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
       { id: 'messaging', label: 'Messaging', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z' },
       { id: 'scholarships', label: 'Scholarships', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
-      { id: 'library', label: 'Library',icon: 'M4 6a2 2 0 012-2h10a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6zm2 0h10v12H6V6zm3 2h4v2H9V8z' },
-      { id: 'transport', label: 'Transport', icon: 'M3 10h.01M12 10h.01M16 10h.01M4 20h16a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2zm2-4h12v2H5v-2zm0-4h12v2H5v-2zm0-4h12v2H5V8z' },
-    ]
+    ];
     }, []);
 
   // Render navigation tabs
@@ -1372,9 +1368,7 @@ const AdminDashboard = () => {
         {activeTab === 'departments' && <DepartmentManagement activeTab={activeTab} />}
         {activeTab === 'courses' && <CourseManagement activeTab={activeTab} />}
         {activeTab === 'results' && renderResultsTab()}
-        {activeTab === 'fees' && <FeeManagement />}
-        {activeTab === 'library' && <LibraryManagement />}
-        {activeTab === 'transport' && <TransportManagement />}
+        
        
         {activeTab === 'events' && (
           <motion.div

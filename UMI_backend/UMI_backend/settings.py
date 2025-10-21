@@ -46,13 +46,11 @@ INSTALLED_APPS = [
     'rest_framework.authtoken',   # Token ke liye
     "corsheaders",
     'register.apps.RegisterConfig',
-    
+    'django_extensions',
     'students',
     'academics',
     'instructors',
     'messaging',
-    'library',
-    'transport',
     'monitoring'
 ]
 REST_FRAMEWORK = {

@@ -13,6 +13,9 @@ from .models import Student
 from .serializers import StudentSerializer
 from .permissions import IsStaffOrAdmin
 from academics.serializers import CourseSerializer
+from rest_framework.decorators import api_view
+from academics.models import Result, Scholarship
+from students.services.analysis import generate_performance_notes
 
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.all()
@@ -180,7 +183,7 @@ class StudentProfileView(APIView):
     def get(self, request):
         try:
             # Get student by email (assuming email is used for authentication)
-            student = Student.objects.get(email=request.user.email)
+            student = Student.objects.get(email=request.user)
             serializer = StudentSerializer(student)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Student.DoesNotExist:
@@ -193,3 +196,65 @@ class StudentProfileView(APIView):
                 {"error": str(e)}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+        # ===================== 🎓 STUDENT DASHBOARD VIEW =====================
+
+
+@api_view(['GET'])
+def StudentDashboardView(request, student_id):
+    """
+    GET /api/students/dashboard/<student_id>/
+    Shows student info, latest results, GPA, attendance, scholarships,
+    and AI-style performance summary.
+    """
+    try:
+        student = Student.objects.get(student_id=student_id)
+        results = Result.objects.filter(student=student).order_by('-exam_date')[:5]
+        notes = generate_performance_notes(student)
+
+        # 🎓 Student Basic Info
+        student_data = {
+            "id": student.student_id,
+            "name": student.name,
+            "email": student.email,
+            "department": student.department.name if student.department else None,
+            "semester": student.semester.name if student.semester else None,
+            "gpa": student.gpa,
+            "attendance": student.attendance_percentage,
+        }
+
+        # 📊 Latest Results
+        results_data = [
+            {
+                "subject": r.course.name if r.course else "N/A",
+                "grade": r.grade,
+                "marks": f"{r.obtained_marks}/{r.total_marks}",
+                "percentage": r.percentage,
+            }
+            for r in results
+        ]
+
+        # 🎁 Scholarships Info (optional)
+        scholarships = list(
+            Scholarship.objects.filter(students=student).values_list("name", flat=True)
+        )
+
+        # 🧠 AI-style Notes
+        data = {
+            "student": student_data,
+            "recent_results": results_data,
+            "scholarships": scholarships,
+            "performance_notes": notes,
+        }
+
+        return Response(data, status=status.HTTP_200_OK)
+
+    except Student.DoesNotExist:
+        return Response(
+            {"error": "Student not found"}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {"error": str(e)}, 
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )

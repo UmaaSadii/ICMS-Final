@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { motion } from "framer-motion";
 import { Bar } from "react-chartjs-2";
 import {
@@ -40,21 +41,21 @@ const StudentDashboard: React.FC = () => {
   const [showProfile, setShowProfile] = useState(false);
   const [aiFeedback, setAiFeedback] = useState("");
 
-  useEffect(() => {
-    setStudentData({
-      name: "Sadia Naz",
-      email: "sadianaz123@gmail.com",
-      department: "Information Technology",
-      semester: "7th Semester",
-      rollNo: "BSIT-2021-45",
-      profileImage:
-        "https://cdn-icons-png.flaticon.com/512/3135/3135715.png",
-    });
-
-    setAiFeedback(
-      "Your performance is on a positive trend! Keep up with your coding projects and teamwork activities."
-    );
-  }, []);
+ useEffect(() => {
+  const fetch = async () => {
+    try {
+      const token = JSON.parse(localStorage.getItem('auth') || '{}')?.access_token;
+      if (!token) return; 
+      const { data } = await axios.get('http://127.0.0.1:8000/api/students/profile/', {
+        headers: { Authorization: `Token ${token}` },
+      });
+      setStudentData(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  fetch();
+}, []);
 
   const handleLogout = () => {
     alert("You have been logged out successfully!");
@@ -67,7 +68,7 @@ const StudentDashboard: React.FC = () => {
     { name: "Messaging", icon: <MessageSquare size={18} /> },
     { name: "Events", icon: <Megaphone size={18} /> },
     { name: "Announcements", icon: <Bell size={18} /> },
-    { name: "Library", icon: <BookOpen size={18} /> },
+    
   ];
 
   return (

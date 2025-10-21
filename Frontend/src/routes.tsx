@@ -11,7 +11,7 @@ import TeacherDashboard from './pages/TeacherDashboard'; // Import TeacherDashbo
 
 import ResultManagement from './components/pages/ResultManagement';
 import ProfessionalResultManagement from './components/pages/ResultManagement';
-import TransportManagement from './components/pages/TransportManagement';
+//import TransportManagement from './components/pages/TransportManagement';
 
 
 // Use the full AdminDashboard component from pages/AdminDashboard.tsx
@@ -94,8 +94,7 @@ const AppRoutes: React.FC = () => {
       <Route path="*" element={<Navigate to={getRedirectPath()} />} />
     
         <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/transport" element={<TransportManagement />} />
-      
+        
 
      
       </Routes>

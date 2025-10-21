@@ -84,24 +84,9 @@ export const courseService = {
   getCoursesBySemester: (semesterId: number) => api.get(`academics/semesters/${semesterId}/courses/`),
 };
 
-// Fee Service
-export const feeService = {
-  getAllFees: () => api.get('academics/fees/'),
-  getFeeById: (id: number) => api.get(`academics/fees/${id}/`),
-  createFee: (data: any) => api.post('academics/fees/', data),
-  updateFee: (id: number, data: any) => api.put(`academics/fees/${id}/`, data),
-  deleteFee: (id: number) => api.delete(`academics/fees/${id}/`),
-  getStudentFees: (studentId: number) => api.get(`academics/students/${studentId}/fees/`),
-};
 
-// Transport Service
-export const transportService = {
-  getAllTransports: () => api.get('transports/'),
-  getTransportById: (id: number) => api.get(`transports/${id}/`),
-  createTransport: (data: any) => api.post('transports/', data),
-  updateTransport: (id: number, data: any) => api.put(`transports/${id}/`, data),
-  deleteTransport: (id: number) => api.delete(`transports/${id}/`),
-};
+
+
 
 // Announcement Service
 export const announcementService = {

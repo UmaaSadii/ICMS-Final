@@ -4,30 +4,50 @@ from .views import (
     DepartmentCourseResultsView,
     DepartmentCoursesView,
     StudentPromotionActionView,
-    StudentFeeStatusListView,
-    PaymentListCreateView,
-    DepartmentSemesterPaymentHistoryView
 )
 from .viewsets import DepartmentViewSet, SemesterViewSet, CourseViewSet
 from rest_framework.routers import DefaultRouter
 
+# =============================
+# Router for Department, Semester, and Course ViewSets
+# =============================
 router = DefaultRouter()
 router.register(r'departments', DepartmentViewSet)
 router.register(r'semesters', SemesterViewSet)
 router.register(r'courses', CourseViewSet)
 
+# =============================
+# URL Patterns
+# =============================
 urlpatterns = [
+    # Register router endpoints
     path('', include(router.urls)),
-    # Enhanced result management endpoints renamed to professional
-    path("students/<int:student_id>/results/professional/", StudentResultListCreateEnhanced.as_view()),
-    path("departments/<int:department_id>/courses/<int:course_id>/results/professional/", DepartmentCourseResultsView.as_view()),
-    path("students/<int:student_id>/promotion/professional/", StudentPromotionActionView.as_view()),
 
-    # Department courses endpoint
-    path("departments/<int:department_id>/courses/", DepartmentCoursesView.as_view()),
+    # Student Result Management (Enhanced endpoints)
+    path(
+        "students/<int:student_id>/results/professional/",
+        StudentResultListCreateEnhanced.as_view(),
+        name="student-results-enhanced"
+    ),
 
-    # Fee management endpoints
-    path("departments/<int:department_id>/semesters/<int:semester_id>/students/fees/", StudentFeeStatusListView.as_view()),
-    path("fees/<int:fee_id>/payments/", PaymentListCreateView.as_view()),
-    path("departments/<int:department_id>/semesters/<int:semester_id>/payments/", DepartmentSemesterPaymentHistoryView.as_view()),
+    # Department-wise specific course result endpoint
+    path(
+        "departments/<int:department_id>/courses/<int:course_id>/results/professional/",
+        DepartmentCourseResultsView.as_view(),
+        name="department-course-results"
+    ),
+
+    # Student promotion (Auto semester upgrade endpoint)
+    path(
+        "students/<int:student_id>/promotion/professional/",
+        StudentPromotionActionView.as_view(),
+        name="student-promotion"
+    ),
+
+    # Department courses listing endpoint
+    path(
+        "departments/<int:department_id>/courses/",
+        DepartmentCoursesView.as_view(),
+        name="department-courses"
+    ),
 ]

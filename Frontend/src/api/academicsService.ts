@@ -19,18 +19,7 @@ export const academicsService = {
   updateResult: (resultId: number, data: any) => api.put(`academics/results/${resultId}/`, data),
   deleteResult: (resultId: number) => api.delete(`academics/results/${resultId}/`),
 
-  // Fee APIs
-  getFees: (filters?: { department?: number; semester?: number }) => {
-    const params = new URLSearchParams();
-    if (filters?.department) params.append('department', filters.department.toString());
-    if (filters?.semester) params.append('semester', filters.semester.toString());
-    console.log('Fee API filters:', params.toString());
-    return api.get(`academics/fees/?${params.toString()}`);
-  },
-  getStudentFees: (studentId: number) => api.get(`academics/students/${studentId}/fees/`),
-  createStudentFee: (studentId: number, data: any) => api.post(`academics/students/${studentId}/fees/`, data),
-  updateFee: (feeId: number, data: any) => api.put(`academics/fees/${feeId}/`, data),
-  deleteFee: (feeId: number) => api.delete(`academics/fees/${feeId}/`),
+ 
 
   // Student APIs
   getStudents: (filters?: { department?: number; semester?: number }) => {
@@ -47,11 +36,6 @@ export const academicsService = {
   getSemester: (semesterId: number) => api.get(`academics/semesters/${semesterId}/`),
   getSemestersByDepartment: (departmentId: number) => api.get(`academics/departments/${departmentId}/semesters/`),
 
-  // Fee Structure APIs
-  getFeeStructures: () => api.get('academics/fee-structures/'),
-  createFeeStructure: (data: any) => api.post('academics/fee-structures/', data),
-  updateFeeStructure: (id: number, data: any) => api.put(`academics/fee-structures/${id}/`, data),
-  deleteFeeStructure: (id: number) => api.delete(`academics/fee-structures/${id}/`),
-
+  
   // Add other academic related API calls here
 };

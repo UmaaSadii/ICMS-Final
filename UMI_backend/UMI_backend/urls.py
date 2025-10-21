@@ -30,9 +30,8 @@ urlpatterns = [
     path('api/token/', obtain_auth_token),  # Token generate karne ke liye
     path('api/instructors/', include('instructors.urls')),
     path('api/messaging/', include('messaging.urls')),
-    path('api/monitoring/', include('monitoring.urls')),
-    path('api/library/', include('library.urls')),
-    path('api/transport/', include('transport.urls'))
+    path('api/monitoring/', include('monitoring.urls'))
+    
 ]
 
 # Serve media files during development
