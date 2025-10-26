@@ -6,6 +6,9 @@ router = DefaultRouter()
 router.register(r'', StudentViewSet)
 
 urlpatterns = [
-    path('', include(router.urls)),
+    # ✅ profile pehle likho
     path('profile/', StudentProfileView.as_view(), name='student-profile'),
+
+    # ✅ baad me router include karo
+    path('', include(router.urls)),
 ]

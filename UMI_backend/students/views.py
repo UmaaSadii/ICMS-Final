@@ -1,32 +1,34 @@
-from rest_framework import viewsets
-from rest_framework.decorators import action
+from rest_framework import viewsets, status
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
-from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
-from .services.analysis import generate_performance_notes
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
+from django.contrib.auth.models import User
+
 from .models import Student
 from .serializers import StudentSerializer
 from .permissions import IsStaffOrAdmin
 from academics.serializers import CourseSerializer
-from rest_framework.decorators import api_view
 from academics.models import Result, Scholarship
-from students.services.analysis import generate_performance_notes
+from .services.analysis import generate_performance_notes
+
 
 class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
-    permission_classes = [IsStaffOrAdmin]  # Admin or staff modify kar sakta
+    permission_classes = [IsStaffOrAdmin]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['department', 'semester']
+    lookup_field = 'student_id'
+    lookup_value_regex = '[^/]+'
     search_fields = ['name', 'email', 'student_id', 'first_name', 'last_name']
     ordering_fields = ['name', 'student_id', 'enrollment_date']
     ordering = ['name']
 
+    # ✅ Filter override
     def get_queryset(self):
         queryset = super().get_queryset()
         department = self.request.query_params.get('department')
@@ -36,23 +38,50 @@ class StudentViewSet(viewsets.ModelViewSet):
 
         if department:
             queryset = queryset.filter(department_id=department)
-            print(f"Filtered by department {department}: {queryset.count()} students")
         if semester:
             queryset = queryset.filter(semester_id=semester)
-            print(f"Filtered by semester {semester}: {queryset.count()} students")
 
         return queryset
 
+    # ✅ Create student + linked user
     def create(self, request, *args, **kwargs):
-        print(f"StudentViewSet create - Request data: {request.data}")
-        print(f"Request content type: {request.content_type}")
         try:
-            return super().create(request, *args, **kwargs)
-        except Exception as e:
-            print(f"StudentViewSet create - Validation error: {e}")
-            print(f"Request data keys: {list(request.data.keys()) if hasattr(request.data, 'keys') else 'No keys'}")
-            raise
+            print(f"StudentViewSet create - Request data: {request.data}")
 
+            first_name = request.data.get("first_name")
+            last_name = request.data.get("last_name")
+            email = request.data.get("email")
+            registration_number = request.data.get("registration_number")
+            password = request.data.get("password")
+
+            # Create linked User
+            user = User.objects.create_user(
+                username=registration_number,
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name,
+            )
+
+            student_data = request.data.copy()
+            student_data["user"] = user.id
+
+            serializer = self.get_serializer(data=student_data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+
+            return Response(
+                {
+                    "message": "Student and user account created successfully",
+                    "student": serializer.data,
+                },
+                status=status.HTTP_201_CREATED,
+            )
+        except Exception as e:
+            print(f"Error in student create: {e}")
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    # ✅ Update student info
     def update(self, request, *args, **kwargs):
         print(f"StudentViewSet update - Request data: {request.data}")
         print(f"Request content type: {request.content_type}")
@@ -60,17 +89,54 @@ class StudentViewSet(viewsets.ModelViewSet):
             return super().update(request, *args, **kwargs)
         except Exception as e:
             print(f"StudentViewSet update - Validation error: {e}")
-            print(f"Request data keys: {list(request.data.keys()) if hasattr(request.data, 'keys') else 'No keys'}")
             raise
 
-    @action(detail=True, methods=["post"], url_path="generate-notes")
-    def generate_notes(self, request, pk=None):
-        """
-        POST /api/students/<id>/generate-notes/
-        Generates performance_notes and saves to the Student.
-        Optional query params:
-          - save=false  (agar sirf preview chahiye ho, save na karna ho)
-        """
+    # ✅ Upload student image
+    @action(
+        detail=True,
+        methods=['post'],
+        url_path='upload-image',
+        parser_classes=[MultiPartParser, FormParser]
+    )
+    def upload_image(self, request, student_id=None):
+        try:
+            student = self.get_object()
+
+            if 'image' not in request.FILES:
+                return Response({"error": "No image file provided"}, status=status.HTTP_400_BAD_REQUEST)
+
+            image_file = request.FILES['image']
+
+            allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
+            if image_file.content_type not in allowed_types:
+                return Response({"error": "Invalid file type"}, status=status.HTTP_400_BAD_REQUEST)
+
+            if image_file.size > 5 * 1024 * 1024:
+                return Response({"error": "File too large (max 5MB)"}, status=status.HTTP_400_BAD_REQUEST)
+
+            student.image = image_file
+            student.save(update_fields=['image'])
+
+            serializer = self.get_serializer(student)
+            return Response(
+                {"message": "Image uploaded successfully", "student": serializer.data},
+                status=status.HTTP_200_OK,
+            )
+        except Student.DoesNotExist:
+            return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": f"Upload failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    # ✅ Delete student
+    def destroy(self, request, *args, **kwargs):
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"error": f"Cannot delete student: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+    # ✅ Generate notes
+    @action(detail=True, methods=['post'], url_path='generate-notes')
+    def generate_notes(self, request, student_id=None):
         student = self.get_object()
         notes = generate_performance_notes(student)
 
@@ -80,138 +146,47 @@ class StudentViewSet(viewsets.ModelViewSet):
             student.save(update_fields=["performance_notes"])
 
         return Response(
-            {
-                "student_id": student.student_id,
-                "saved": save_flag,
-                "performance_notes": notes,
-            },
+            {"student_id": student.student_id, "saved": save_flag, "performance_notes": notes},
             status=status.HTTP_200_OK,
         )
 
-    @action(detail=True, methods=['post'], url_path='upload-image', parser_classes=[MultiPartParser, FormParser])
-    def upload_image(self, request, pk=None):
-        """
-        POST /api/students/<id>/upload-image/
-        Upload image for a student
-        """
-        try:
-            student = self.get_object()
-            
-            if 'image' not in request.FILES:
-                return Response(
-                    {"error": "No image file provided"}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            image_file = request.FILES['image']
-            
-            # Validate file type
-            allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif']
-            if image_file.content_type not in allowed_types:
-                return Response(
-                    {"error": "Invalid file type. Only JPEG, PNG, and GIF images are allowed"}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Validate file size (max 5MB)
-            if image_file.size > 5 * 1024 * 1024:
-                return Response(
-                    {"error": "File size too large. Maximum size is 5MB"}, 
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            
-            # Save the image
-            student.image = image_file
-            student.save(update_fields=['image'])
-            
-            # Return updated student data
-            serializer = self.get_serializer(student)
-            return Response({
-                "message": "Image uploaded successfully",
-                "student": serializer.data
-            }, status=status.HTTP_200_OK)
-            
-        except Student.DoesNotExist:
-            return Response(
-                {"error": "Student not found"}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
-        except Exception as e:
-            return Response(
-                {"error": f"Upload failed: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-    def destroy(self, request, *args, **kwargs):
-        try:
-            return super().destroy(request, *args, **kwargs)
-        except Exception as e:
-            return Response(
-                {"error": f"Cannot delete student: {str(e)}"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
+    # ✅ Get all student courses
     @action(detail=True, methods=['get'], url_path='courses')
-    def get_student_courses(self, request, pk=None):
-        """
-        GET /api/students/<id>/courses/
-        Get all courses assigned to a specific student
-        """
+    def get_student_courses(self, request, student_id=None):
         try:
             student = self.get_object()
             courses = student.courses.all()
             serializer = CourseSerializer(courses, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Student.DoesNotExist:
-            return Response(
-                {"error": "Student not found"},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response(
-                {"error": f"Failed to fetch courses: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({"error": f"Failed to fetch courses: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
+# ✅ Student Profile (for logged-in student)
 class StudentProfileView(APIView):
-    """
-    GET /api/students/profile/
-    Get current student's profile based on authentication
-    """
     permission_classes = [IsAuthenticated]
-    
+
     def get(self, request):
+        print("User:", request.user)
+        print("Is authenticated:", request.user.is_authenticated)
         try:
-            # Get student by email (assuming email is used for authentication)
-            student = Student.objects.get(email=request.user)
+            student = Student.objects.get(user=request.user)
             serializer = StudentSerializer(student)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.data)
         except Student.DoesNotExist:
-            return Response(
-                {"error": "Student profile not found"}, 
-                status=status.HTTP_404_NOT_FOUND
-            )
-        except Exception as e:
-            return Response(
-                {"error": str(e)}, 
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-        # ===================== 🎓 STUDENT DASHBOARD VIEW =====================
+            return Response({"error": "Student profile not found"}, status=404)
 
 
+# ✅ Dashboard View
 @api_view(['GET'])
 def StudentDashboardView(request, student_id):
-    """
-    GET /api/students/dashboard/<student_id>/
-    Shows student info, latest results, GPA, attendance, scholarships,
-    and AI-style performance summary.
-    """
     try:
         student = Student.objects.get(student_id=student_id)
         results = Result.objects.filter(student=student).order_by('-exam_date')[:5]
         notes = generate_performance_notes(student)
 
-        # 🎓 Student Basic Info
         student_data = {
             "id": student.student_id,
             "name": student.name,
@@ -222,7 +197,6 @@ def StudentDashboardView(request, student_id):
             "attendance": student.attendance_percentage,
         }
 
-        # 📊 Latest Results
         results_data = [
             {
                 "subject": r.course.name if r.course else "N/A",
@@ -233,12 +207,10 @@ def StudentDashboardView(request, student_id):
             for r in results
         ]
 
-        # 🎁 Scholarships Info (optional)
         scholarships = list(
             Scholarship.objects.filter(students=student).values_list("name", flat=True)
         )
 
-        # 🧠 AI-style Notes
         data = {
             "student": student_data,
             "recent_results": results_data,
@@ -249,12 +221,6 @@ def StudentDashboardView(request, student_id):
         return Response(data, status=status.HTTP_200_OK)
 
     except Student.DoesNotExist:
-        return Response(
-            {"error": "Student not found"}, 
-            status=status.HTTP_404_NOT_FOUND
-        )
+        return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
-        return Response(
-            {"error": str(e)}, 
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
-        )
+        return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

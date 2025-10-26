@@ -4,6 +4,7 @@ from .views import (
     DepartmentCourseResultsView,
     DepartmentCoursesView,
     StudentPromotionActionView,
+    DepartmentSemestersView,
 )
 from .viewsets import DepartmentViewSet, SemesterViewSet, CourseViewSet
 from rest_framework.routers import DefaultRouter
@@ -50,4 +51,9 @@ urlpatterns = [
         DepartmentCoursesView.as_view(),
         name="department-courses"
     ),
+    path(
+    "departments/<int:department_id>/semesters/",
+    DepartmentSemestersView.as_view(),
+    name="department-semesters"
+),
 ]

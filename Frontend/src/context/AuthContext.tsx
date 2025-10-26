@@ -20,7 +20,7 @@ interface AuthData {
 
 interface AuthContextType {
   currentUser: User | null;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string, enforceRole?: string) => Promise<void>; // ✅ Added enforceRole
   register: (userData: any) => Promise<void>;
   logout: () => void;
   forceLogout: () => void;
@@ -43,53 +43,56 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   
-  // Check for existing user session on initial load
+  // ✅ Check for existing session on initial load
   useEffect(() => {
     const storedAuth = localStorage.getItem('auth');
     if (storedAuth) {
       try {
         const authData: AuthData = JSON.parse(storedAuth);
         setCurrentUser(authData.user);
-        
-        // Setup axios with the stored token
-      if (authData.access_token) {
-        axios.defaults.headers.common['Authorization'] = `Token ${authData.access_token}`;
-      }
-    } catch (err) {
-      console.error('Error parsing stored auth data:', err);
-      localStorage.removeItem('auth');
-    }
-  }
-  setLoading(false);
-}, []);
 
-const login = async (username: string, password: string) => {
-  try {
-    setLoading(true);
-    setError(null);
-    const response = await authService.login({ username, password });
-    
-    console.log('Login response in AuthContext:', response);
-    
-    if (!response) {
-      throw new Error('No response received from login');
+        if (authData.access_token) {
+          axios.defaults.headers.common['Authorization'] = `Token ${authData.access_token}`;
+        }
+      } catch (err) {
+        console.error('Error parsing stored auth data:', err);
+        localStorage.removeItem('auth');
+      }
     }
-    
-    const authData: AuthData = {
-      user: response.user,
-      access_token: response.access_token,
-      refresh_token: response.refresh_token
-    };
-    
-    console.log('Auth data being stored from login:', authData);
-    
-    setCurrentUser(authData.user);
-    localStorage.setItem('auth', JSON.stringify(authData));
-    
-    // Set the authorization header for future requests
-    axios.defaults.headers.common['Authorization'] = `Token ${authData.access_token}`;
-    
-      // Redirect based on role
+    setLoading(false);
+  }, []);
+
+  // ✅ Updated login with enforceRole
+  const login = async (username: string, password: string, enforceRole?: string) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await authService.login({ username, password });
+      
+      console.log('Login response in AuthContext:', response);
+      
+      if (!response) {
+        throw new Error('No response received from login');
+      }
+
+      // ✅ Role restriction check
+      if (enforceRole && response.user.role !== enforceRole) {
+        throw new Error(`Access denied. Only ${enforceRole}s can log in here.`);
+      }
+      
+      const authData: AuthData = {
+        user: response.user,
+        access_token: response.access_token,
+        refresh_token: response.refresh_token
+      };
+      
+      console.log('Auth data being stored from login:', authData);
+      
+      setCurrentUser(authData.user);
+      localStorage.setItem('auth', JSON.stringify(authData));
+      axios.defaults.headers.common['Authorization'] = `Token ${authData.access_token}`;
+      
+      // ✅ Role-based redirect
       if (authData.user.role === "admin" || authData.user.role === "principal" || authData.user.role === "director") {
         navigate("/admin");
       } else if (authData.user.role === "instructor") {
@@ -101,14 +104,14 @@ const login = async (username: string, password: string) => {
       } else {
         navigate("/dashboard");
       }
-  } catch (err) {
-    console.error('Login error:', err);
-    setError("Invalid credentials. Please try again.");
-    throw err;
-  } finally {
-    setLoading(false);
-  }
-};
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(err.message || "Invalid credentials. Please try again.");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const register = async (userData: any) => {
     try {
@@ -118,9 +121,7 @@ const login = async (username: string, password: string) => {
       
       console.log('Registration response:', response);
       
-      // The backend returns user data inside the response object
       if (!response.user) {
-        console.error('User data missing from response:', response);
         throw new Error('No user data received from registration');
       }
       
@@ -134,11 +135,9 @@ const login = async (username: string, password: string) => {
       
       setCurrentUser(authData.user);
       localStorage.setItem('auth', JSON.stringify(authData));
-      
-      // Set the authorization header for future requests
       axios.defaults.headers.common['Authorization'] = `Token ${authData.access_token}`;
 
-      // Redirect based on role after successful registration
+      // ✅ Redirect by role
       if (authData.user.role === "admin" || authData.user.role === "principal" || authData.user.role === "director") {
         navigate("/admin");
       } else if (authData.user.role === "staff") {
@@ -150,15 +149,12 @@ const login = async (username: string, password: string) => {
       }
     } catch (err: any) {
       console.error('Registration error details:', err.response?.data || err.message || err);
-      if (err.response?.data) {
-        // Extract error message from API response
-        const errorMessage = typeof err.response.data === 'string'
+      const errorMessage = err.response?.data
+        ? typeof err.response.data === 'string'
           ? err.response.data
-          : Object.values(err.response.data).flat().join(', ');
-        setError(errorMessage || "Registration failed. Please try again.");
-      } else {
-        setError("Registration failed. Please try again.");
-      }
+          : Object.values(err.response.data).flat().join(', ')
+        : "Registration failed. Please try again.";
+      setError(errorMessage);
       throw err;
     } finally {
       setLoading(false);
@@ -167,17 +163,15 @@ const login = async (username: string, password: string) => {
   
   const logout = () => {
     setCurrentUser(null);
-    // Call the authService logout method to clean up auth data
     authService.logout();
     navigate("/login");
   };
 
-  // Force logout function for debugging/testing
   const forceLogout = () => {
     console.log('Force logout called - clearing all auth data');
     setCurrentUser(null);
     localStorage.removeItem('auth');
-    localStorage.clear(); // Clear all localStorage
+    localStorage.clear();
     delete axios.defaults.headers.common['Authorization'];
     navigate("/login");
   };

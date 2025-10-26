@@ -1,7 +1,11 @@
 from rest_framework import serializers
+from django.contrib.auth import get_user_model
+User = get_user_model()
+from datetime import date
 from .models import Student
-from academics.models import Course
-from academics.serializers import CourseSerializer  # ✅ FeeSerializer hata diya
+from academics.models import Course, Department, Semester
+from academics.serializers import CourseSerializer
+
 
 class StudentSerializer(serializers.ModelSerializer):
     id = serializers.SerializerMethodField()
@@ -51,21 +55,10 @@ class StudentSerializer(serializers.ModelSerializer):
 
         try:
             semester_courses = Course.objects.filter(semester=student.semester)
-            current_course_ids = set(student.courses.values_list('course_id', flat=True))
-            new_course_ids = set(semester_courses.values_list('course_id', flat=True))
-
             student.courses.set(semester_courses)
 
-            added_courses = new_course_ids - current_course_ids
-            removed_courses = current_course_ids - new_course_ids
-
-            if added_courses:
-                added_names = list(Course.objects.filter(course_id__in=added_courses).values_list('name', flat=True))
-                logger.info(f"Added courses to {student.name}: {added_names}")
-
-            if removed_courses:
-                removed_names = list(Course.objects.filter(course_id__in=removed_courses).values_list('name', flat=True))
-                logger.info(f"Removed courses from {student.name}: {removed_names}")
+            added_names = list(semester_courses.values_list('name', flat=True))
+            logger.info(f"Assigned courses to {student.name}: {added_names}")
 
         except Exception as e:
             logger.error(f"Error assigning courses to {student.name}: {e}")
@@ -74,7 +67,7 @@ class StudentSerializer(serializers.ModelSerializer):
     def validate(self, data):
         print(f"StudentSerializer validate - Incoming data: {data}")
 
-        required_fields = ['email', 'department_id']
+        required_fields = ['email', 'department_id', 'registration_number']
         for field in required_fields:
             if field not in data or not data[field]:
                 raise serializers.ValidationError(f"{field} is required")
@@ -85,29 +78,49 @@ class StudentSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        from academics.models import Department, Semester
+        # ✅ Extract and set department + semester
         department_id = validated_data.pop('department_id', None)
         semester_id = validated_data.pop('semester_id', None)
-
         if department_id:
             validated_data['department'] = Department.objects.get(pk=department_id)
         if semester_id:
             validated_data['semester'] = Semester.objects.get(pk=semester_id)
 
-        # Combine name
-        if 'first_name' in validated_data and 'last_name' in validated_data:
+        # ✅ Merge first/last name into full name
+        if validated_data.get('first_name') or validated_data.get('last_name'):
             validated_data['name'] = f"{validated_data.get('first_name', '')} {validated_data.get('last_name', '')}".strip()
 
-        from datetime import date
         validated_data.setdefault('phone', 'N/A')
         validated_data.setdefault('date_of_birth', date.today())
 
+        # ✅ Create linked user for student login
+        email = validated_data.get('email')
+        password = validated_data.get('password') or '12345678'
+        reg_no = validated_data.get('registration_number')
+        first_name = validated_data.get('first_name', '')
+        last_name = validated_data.get('last_name', '')
+
+        # 🧠 username = registration_number
+        user = User.objects.create_user(
+            username=reg_no,
+            email=email,
+            password=password,
+            first_name=first_name,
+            last_name=last_name
+        )
+        user.save()
+
+        validated_data['user'] = user
+
+        # ✅ Create student record
         student = super().create(validated_data)
+
+        # ✅ Auto assign semester courses
         self._assign_semester_courses(student)
+
         return student
 
     def update(self, instance, validated_data):
-        from academics.models import Department, Semester
         department_id = validated_data.pop('department_id', None)
         semester_id = validated_data.pop('semester_id', None)
 
@@ -116,12 +129,14 @@ class StudentSerializer(serializers.ModelSerializer):
         if semester_id:
             validated_data['semester'] = Semester.objects.get(pk=semester_id)
 
-        if 'first_name' in validated_data and 'last_name' in validated_data:
+        if validated_data.get('first_name') or validated_data.get('last_name'):
             validated_data['name'] = f"{validated_data.get('first_name', '')} {validated_data.get('last_name', '')}".strip()
 
         student = super().update(instance, validated_data)
+
         if 'semester' in validated_data or 'semester_id' in validated_data:
             self._assign_semester_courses(student)
+
         return student
 
     class Meta:

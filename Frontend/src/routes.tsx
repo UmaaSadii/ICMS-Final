@@ -11,6 +11,8 @@ import TeacherDashboard from './pages/TeacherDashboard'; // Import TeacherDashbo
 
 import ResultManagement from './components/pages/ResultManagement';
 import ProfessionalResultManagement from './components/pages/ResultManagement';
+import RegisterForm from 'components/pages/RegisterForm';
+import StudentLogin from  'pages/StudentLogin';
 //import TransportManagement from './components/pages/TransportManagement';
 
 
@@ -49,7 +51,14 @@ const AppRoutes: React.FC = () => {
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={currentUser ? <Navigate to={getRedirectPath()} /> : <AuthPage />} />
-      <Route path="/register" element={currentUser ? <Navigate to={getRedirectPath()} /> : <AuthPage />} />
+      <Route
+  path="/register"
+  element={
+    currentUser?.role === "admin"
+      ? <RegisterForm /> 
+      : <Navigate to="/login" replace />
+  }
+/>
       
       {/* Redirect root to login if not authenticated */}
       <Route path="/" element={currentUser ? <Navigate to={getRedirectPath()} /> : <Navigate to="/login" />} />
@@ -94,6 +103,16 @@ const AppRoutes: React.FC = () => {
       <Route path="*" element={<Navigate to={getRedirectPath()} />} />
     
         <Route path="/admin" element={<AdminDashboard />} />
+      <Route path="/student-login" element={<StudentLogin />} />
+
+<Route
+  path="/student/dashboard"
+  element={
+    currentUser?.role === "student"
+      ? <StudentDashboard />
+      : <Navigate to="/student-login" replace />
+  }
+/>
         
 
      

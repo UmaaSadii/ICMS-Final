@@ -37,8 +37,8 @@ const Register = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const toggleShowPassword = () => {
-    setShowPassword(!showPassword);
+  const toggleShowPassword = (): void => {
+    setShowPassword(prev => !prev);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -298,10 +298,10 @@ const Register = () => {
           >
             <option value="student">Student</option>
             <option value="instructor">Instructor</option>
-            <option value="staff">Staff</option>
+            <option value="HOD">Staff</option>
             <option value="admin">Admin</option>
             <option value="principal">Principal</option>
-            <option value="director">Director</option>
+            
           </select>
         </div>
 

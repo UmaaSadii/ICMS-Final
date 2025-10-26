@@ -211,3 +211,22 @@ class StudentPromotionActionView(APIView):
             return Response({"error": "Invalid action"}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+class DepartmentSemestersView(APIView):
+    def get(self, request, department_id):
+        semesters = Semester.objects.filter(department_id=department_id)
+        serializer = SemesterSerializer(semesters, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, department_id):
+        """
+        Create a new semester under the given department
+        """
+        data = request.data.copy()
+        data["department"] = department_id  # auto attach department
+
+        serializer = SemesterSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

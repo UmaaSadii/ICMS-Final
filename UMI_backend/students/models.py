@@ -16,7 +16,7 @@ class Student(models.Model):
     )
     date_of_birth = models.DateField(null=True, blank=True)
     father_guardian = models.CharField(max_length=100, blank=True, null=True)
-    image = models.ImageField(upload_to="student_images/", null=True, blank=True)
+    image = models.ImageField(upload_to="student_images/", null=True, blank=True, default="student_images/default.jpg")
 
     # New fields for detailed form
     first_name = models.CharField(max_length=50, blank=True, null=True)

@@ -22,16 +22,17 @@ import {
   BookOpen,
   Bell,
 } from "lucide-react";
+import { Department, Semester } from "api/studentInstructorService";
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 interface Student {
   name: string;
   email: string;
-  department: string;
-  semester: string;
+  department: Department;
+  semester: Semester;
   rollNo: string;
-  profileImage?: string;
+  image?: string;
 }
 
 const StudentDashboard: React.FC = () => {
@@ -99,12 +100,14 @@ const StudentDashboard: React.FC = () => {
             }}
           >
             <img
-              src={studentData?.profileImage}
-              alt="Profile"
-              className="w-20 h-20 rounded-full border-4 border-blue-500 object-cover shadow-md"
-            />
-            <p className="mt-3 font-semibold">{studentData?.name}</p>
-          </div>
+  src={
+    studentData?.image
+      ? `http://127.0.0.1:8000${studentData.image}`
+      : "https://via.placeholder.com/150"
+  }
+  alt="Profile"
+  className="w-20 h-20 rounded-full border-4 border-blue-500 object-cover shadow-md"/>
+</div>
 
           {/* Sidebar Modules */}
           <nav className="space-y-2">
@@ -261,20 +264,24 @@ const StudentDashboard: React.FC = () => {
               </h2>
               <div className="flex items-center gap-6 mb-4">
                 <img
-                  src={studentData?.profileImage}
-                  alt="Profile"
-                  className="w-24 h-24 rounded-full border-4 border-blue-500 object-cover"
-                />
+  src={
+    studentData?.image
+      ? `http://127.0.0.1:8000${studentData.image}`
+      : "https://via.placeholder.com/150"
+  }
+  alt="Profile"
+  className="w-20 h-20 rounded-full border-4 border-blue-500 object-cover shadow-md"/>
+
                 <div>
                   <p className="font-semibold text-lg">{studentData?.name}</p>
                   <p className="text-sm text-gray-400">{studentData?.email}</p>
                 </div>
               </div>
               <ul className="space-y-2 text-gray-600 dark:text-gray-300">
-                <li><strong>Department:</strong> {studentData?.department}</li>
-                <li><strong>Semester:</strong> {studentData?.semester}</li>
-                <li><strong>Roll No:</strong> {studentData?.rollNo}</li>
-              </ul>
+               <li><strong>Department:</strong> {studentData?.department?.name || "N/A"}</li>
+              <li><strong>Semester:</strong> {studentData?.semester?.name || "N/A"}</li>
+             
+                </ul>
             </motion.div>
           )}
         </div>
