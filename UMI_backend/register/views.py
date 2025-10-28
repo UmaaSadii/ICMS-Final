@@ -43,10 +43,56 @@ def register(request):
 def login(request):
     username = request.data.get('username')
     password = request.data.get('password')
-    user = authenticate(username=username, password=password)
+
+    # For instructors and students, try to authenticate using employee_id or registration_number as username
+    user = None
+    if username:
+        # First try direct username authentication
+        user = authenticate(username=username, password=password)
+
+        # If not found, try instructor lookup by employee_id
+        if not user:
+            try:
+                from instructors.models import Instructor
+                instructor = Instructor.objects.get(employee_id=username)
+                user = authenticate(username=instructor.user.username, password=password)
+            except Instructor.DoesNotExist:
+                pass  # Continue with None user
+
+        # If still not found, try student lookup by student_id (registration_number)
+        if not user:
+            try:
+                from students.models import Student
+                student = Student.objects.get(student_id=username)
+                user = authenticate(username=student.user.username, password=password)
+            except Student.DoesNotExist:
+                pass  # Continue with None user
 
     if user:
         token, _ = Token.objects.get_or_create(user=user)
+
+        # Get instructor profile if user is an instructor
+        instructor_profile = None
+        if user.role == 'instructor':
+            try:
+                from instructors.models import Instructor
+                instructor = Instructor.objects.get(user=user)
+                instructor_profile = {
+                    "id": instructor.id,
+                    "employee_id": instructor.employee_id,
+                    "name": instructor.name,
+                    "phone": instructor.phone,
+                    "department": instructor.department.name if instructor.department else None,
+                    "designation": instructor.designation,
+                    "specialization": instructor.specialization,
+                    "experience_years": instructor.experience_years,
+                    "hire_date": instructor.hire_date.isoformat() if instructor.hire_date else None,
+                    "address": instructor.address,
+                    "image": instructor.image.url if instructor.image else None,
+                }
+            except Exception as e:
+                logger.error(f"Error fetching instructor profile: {e}")
+
         return Response({
             "user": {
                 "id": user.id,
@@ -56,6 +102,7 @@ def login(request):
                 "first_name": user.first_name,
                 "last_name": user.last_name,
             },
+            "instructor_profile": instructor_profile,
             "access_token": token.key,
             "refresh_token": None   # 👈 abhi ke liye None, baad me JWT add kar sakti ho
         }, status=status.HTTP_200_OK)

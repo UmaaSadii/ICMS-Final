@@ -28,9 +28,29 @@ class InstructorViewSet(viewsets.ModelViewSet):
             from register.models import User
             from rest_framework import serializers
             user_email = data_for_validation.pop('user_email', None)
+            password = data_for_validation.pop('password', None)
+
             if not user_email:
                 raise serializers.ValidationError("user_email is required")
-            user, created = User.objects.get_or_create(email=user_email, defaults={'username': user_email})
+            if not password:
+                raise serializers.ValidationError("password is required for new instructors")
+
+            user, created = User.objects.get_or_create(
+                email=user_email,
+                defaults={
+                    'username': data_for_validation.get('employee_id', user_email),  # Use employee_id as username if provided
+                    'role': 'instructor'
+                }
+            )
+
+            # If user was created, set the password
+            if created:
+                user.set_password(password)
+                user.save()
+            else:
+                # If user already exists, check if they have an instructor profile
+                if hasattr(user, 'instructor_profile'):
+                    raise serializers.ValidationError("User already has an instructor profile")
 
             # Check if user already has an instructor profile
             if hasattr(user, 'instructor_profile'):
@@ -56,15 +76,27 @@ class InstructorViewSet(viewsets.ModelViewSet):
             from register.models import User
             from rest_framework import serializers
             user_email = data_for_validation.pop('user_email', None)
+            password = data_for_validation.pop('password', None)
+
+            instance = self.get_object()
+
             if user_email:
                 user, created = User.objects.get_or_create(email=user_email, defaults={'username': user_email})
                 # Update the instructor's user email if it has changed
-                instance = self.get_object()
                 if instance.user.email != user_email:
                     instance.user.email = user_email
                     instance.user.save()
 
-            serializer = self.get_serializer(self.get_object(), data=data_for_validation)
+            # Update password if provided
+            if password:
+                # Handle case where password might be sent as list from FormData
+                if isinstance(password, list):
+                    password = password[0] if password else None
+                if password and password.strip():  # Ensure it's not empty or just whitespace
+                    instance.user.set_password(password)
+                    instance.user.save()
+
+            serializer = self.get_serializer(instance, data=data_for_validation)
             serializer.is_valid(raise_exception=True)
             serializer.save()
 
@@ -80,7 +112,7 @@ class InstructorViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='upload-image',
             parser_classes=[MultiPartParser, FormParser],
-            permission_classes=[IsAdminOrReadOnly])   # 👈 only admin can upload
+            permission_classes=[IsAdminOrReadOnly])
     def upload_image(self, request, pk=None):
         """
         POST /api/instructors/<id>/upload-image/

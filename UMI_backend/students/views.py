@@ -6,7 +6,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.parsers import MultiPartParser, FormParser
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 from .models import Student
 from .serializers import StudentSerializer
@@ -53,6 +55,14 @@ class StudentViewSet(viewsets.ModelViewSet):
             email = request.data.get("email")
             registration_number = request.data.get("registration_number")
             password = request.data.get("password")
+
+            # Check if user already exists
+            if User.objects.filter(username=registration_number).exists():
+                return Response({"error": "User with this registration number already exists"}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Check if student already exists
+            if Student.objects.filter(student_id=registration_number).exists():
+                return Response({"error": "Student with this registration number already exists"}, status=status.HTTP_400_BAD_REQUEST)
 
             # Create linked User
             user = User.objects.create_user(

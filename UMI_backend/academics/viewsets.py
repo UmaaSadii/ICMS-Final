@@ -11,6 +11,18 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     serializer_class = DepartmentSerializer
     permission_classes = [AllowAnyReadOnly]
 
+    def perform_create(self, serializer):
+        department = serializer.save()
+        # Auto-generate semesters based on num_semesters
+        for i in range(1, department.num_semesters + 1):
+            Semester.objects.create(
+                name=f"Semester {i}",
+                semester_code=f"SEM{i}",
+                program=department.name,
+                capacity=30,
+                department=department
+            )
+
     @action(detail=True, methods=['get'])
     def semesters(self, request, pk=None):
         department = self.get_object()

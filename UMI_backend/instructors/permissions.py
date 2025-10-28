@@ -17,6 +17,15 @@ class IsAdminOrReadOnly(permissions.BasePermission):
         if request.method in permissions.SAFE_METHODS:
             return request.user and request.user.is_authenticated
         # Allow write operations for admin users or the instructor themselves
+        # For upload-image action, allow instructors to upload their own images
+        if view.action == 'upload_image':
+            return (
+                request.user and request.user.is_authenticated and (
+                    request.user.is_staff or
+                    getattr(request.user, 'role', None) in ['admin', 'principal', 'director'] or
+                    (hasattr(obj, 'user') and obj.user == request.user)
+                )
+            )
         return (
             request.user and request.user.is_authenticated and (
                 request.user.is_staff or

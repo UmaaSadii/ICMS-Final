@@ -5,12 +5,14 @@ interface Department {
   name: string;
   code: string;
   description: string;
+  num_semesters: number;
 }
 
 interface DepartmentFormData {
   name: string;
   code: string;
   description: string;
+  num_semesters: number;
 }
 
 interface DepartmentModalProps {
@@ -27,7 +29,8 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ isOpen, onClose, onSu
   const [formData, setFormData] = useState<DepartmentFormData>({
     name: '',
     code: '',
-    description: ''
+    description: '',
+    num_semesters: 8
   });
 
   // Populate form data when editing
@@ -36,20 +39,25 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ isOpen, onClose, onSu
       setFormData({
         name: editingDepartment.name,
         code: editingDepartment.code,
-        description: editingDepartment.description
+        description: editingDepartment.description,
+        num_semesters: editingDepartment.num_semesters || 8
       });
     } else {
       setFormData({
         name: '',
         code: '',
-        description: ''
+        description: '',
+        num_semesters: 8
       });
     }
   }, [editingDepartment]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    const { name, value, type } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'number' ? parseInt(value) || 0 : value
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -137,6 +145,20 @@ const DepartmentModal: React.FC<DepartmentModalProps> = ({ isOpen, onClose, onSu
               value={formData.description}
               onChange={handleInputChange}
               rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Number of Semesters *</label>
+            <input
+              type="number"
+              name="num_semesters"
+              value={formData.num_semesters}
+              onChange={handleInputChange}
+              min={1}
+              max={12}
+              required
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { motion } from "framer-motion";
+import authService from "../api/authService";
 
 const Login = () => {
   const { login, error: authError, loading } = useAuth();
@@ -101,7 +102,7 @@ const Login = () => {
           </div>
           <input
             type="text"
-            placeholder="Username"
+            placeholder="Username or Employee ID"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"

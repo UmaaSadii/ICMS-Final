@@ -297,11 +297,10 @@ const Register = () => {
             className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
           >
             <option value="student">Student</option>
-            <option value="instructor">Instructor</option>
             <option value="HOD">Staff</option>
             <option value="admin">Admin</option>
             <option value="principal">Principal</option>
-            
+
           </select>
         </div>
 

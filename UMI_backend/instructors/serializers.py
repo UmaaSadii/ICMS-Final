@@ -5,10 +5,17 @@ class InstructorSerializer(serializers.ModelSerializer):
     user_email = serializers.EmailField(source='user.email', read_only=True)
     department_name = serializers.CharField(source='department.name', read_only=True)
     department_id = serializers.IntegerField(write_only=True, required=False)
+    password = serializers.CharField(write_only=True, required=False, min_length=8)
+    image = serializers.SerializerMethodField()
+
+    def get_image(self, obj):
+        if obj.image:
+            return obj.image.url
+        return None
 
     class Meta:
         model = Instructor
-        fields = ['id', 'user', 'employee_id', 'name', 'phone', 'department', 'department_id', 'designation', 'hire_date', 'date_of_birth', 'gender', 'blood_group', 'salary', 'specialization', 'address', 'experience_years', 'image', 'ai_profile_notes', 'ai_last_generated', 'user_email', 'department_name']
+        fields = ['id', 'user', 'employee_id', 'name', 'phone', 'department', 'department_id', 'designation', 'hire_date', 'date_of_birth', 'gender', 'blood_group', 'salary', 'specialization', 'address', 'experience_years', 'image', 'ai_profile_notes', 'ai_last_generated', 'user_email', 'department_name', 'password']
         read_only_fields = ['user', 'user_email', 'department_name']
 
     def create(self, validated_data):

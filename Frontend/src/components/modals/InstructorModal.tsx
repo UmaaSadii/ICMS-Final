@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { instructorService, departmentService } from '../../api/studentInstructorService';
 
@@ -32,6 +33,7 @@ const InstructorModal: React.FC<InstructorModalProps> = ({ isOpen, onClose, inst
     experience_years: '',
     hire_date: '',
     address: '',
+    password: '',
   });
 
   // Fetch departments
@@ -79,7 +81,8 @@ const InstructorModal: React.FC<InstructorModalProps> = ({ isOpen, onClose, inst
             ? instructor.department.id
             : instructor.department_id || '';
 
-          setFormData({
+          setFormData(prev => ({
+            ...prev,
             name: instructor.name || '',
             email: instructor.user?.email || '',
             phone: instructor.phone || '',
@@ -90,7 +93,8 @@ const InstructorModal: React.FC<InstructorModalProps> = ({ isOpen, onClose, inst
             experience_years: instructor.experience_years?.toString() || '',
             hire_date: instructor.hire_date ? new Date(instructor.hire_date).toISOString().split('T')[0] : '',
             address: instructor.address || '',
-          });
+            password: '',
+          }));
           
           if (instructor.image) {
             setImagePreview(instructor.image);
@@ -157,6 +161,18 @@ const InstructorModal: React.FC<InstructorModalProps> = ({ isOpen, onClose, inst
         return;
       }
 
+      if (!instructorId && !formData.password.trim()) {
+        setError('Password is required for new instructors.');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!instructorId && !imageFile) {
+        setError('Profile image is required for new instructors.');
+        setIsLoading(false);
+        return;
+      }
+
       const formDataToSend = new FormData();
 
       // Add all form fields to FormData
@@ -178,6 +194,11 @@ const InstructorModal: React.FC<InstructorModalProps> = ({ isOpen, onClose, inst
       // Add email for user association - this is crucial for both create and update
       if (formData.email) {
         formDataToSend.append('user_email', formData.email);
+      }
+
+      // Add password for new instructors or updates
+      if (formData.password) {
+        formDataToSend.append('password', formData.password);
       }
 
       console.log('Instructor data to send:', {
@@ -370,12 +391,36 @@ const InstructorModal: React.FC<InstructorModalProps> = ({ isOpen, onClose, inst
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password {!instructorId && <span className="text-red-500">*</span>}
+              </label>
+              <input
+                type="password"
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                required={!instructorId}
+                placeholder={instructorId ? "Leave blank to keep current password" : "Enter a strong password (min 8 characters)"}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {instructorId
+                  ? "Leave blank to keep the current password unchanged."
+                  : "Password must be at least 8 characters long and contain a mix of letters, numbers, and special characters."
+                }
+              </p>
+            </div>
+
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Profile Image</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Profile Image {!instructorId && <span className="text-red-500">*</span>}
+              </label>
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleImageChange}
+                required={!instructorId}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
               />
               {imagePreview && (
@@ -386,6 +431,11 @@ const InstructorModal: React.FC<InstructorModalProps> = ({ isOpen, onClose, inst
                     className="h-32 w-32 object-cover rounded-md"
                   />
                 </div>
+              )}
+              {!instructorId && (
+                <p className="text-xs text-gray-500 mt-1">
+                  Profile image is required for new instructors.
+                </p>
               )}
             </div>
           </div>
