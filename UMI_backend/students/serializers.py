@@ -93,24 +93,11 @@ class StudentSerializer(serializers.ModelSerializer):
         validated_data.setdefault('phone', 'N/A')
         validated_data.setdefault('date_of_birth', date.today())
 
-        # ✅ Create linked user for student login
-        email = validated_data.get('email')
-        password = validated_data.get('password') or '12345678'
-        reg_no = validated_data.get('registration_number')
-        first_name = validated_data.get('first_name', '')
-        last_name = validated_data.get('last_name', '')
+        # ✅ User is already created by the ViewSet, so just use it
+        # The user is passed in validated_data['user']
 
-        # 🧠 username = registration_number
-        user = User.objects.create_user(
-            username=reg_no,
-            email=email,
-            password=password,
-            first_name=first_name,
-            last_name=last_name
-        )
-        user.save()
-
-        validated_data['user'] = user
+        # ✅ Set student_id to registration_number for uniqueness
+        validated_data['student_id'] = validated_data.get('registration_number')
 
         # ✅ Create student record
         student = super().create(validated_data)

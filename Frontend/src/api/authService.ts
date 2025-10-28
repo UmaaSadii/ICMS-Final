@@ -18,11 +18,17 @@ interface LoginData {
   password: string;
 }
 
+interface InstructorLoginData {
+  employee_id: string;
+  password: string;
+}
+
 interface AuthResponse {
   user: any;
   access_token: string;
   refresh_token: string;
   message?: string;
+  instructor_profile?: any;
 }
 
 interface BackendResponse {
@@ -30,6 +36,7 @@ interface BackendResponse {
   user: any;
   access_token: string;
   refresh_token: string;
+  instructor_profile?: any;
 }
 
 // Create axios instance with default config
@@ -75,18 +82,19 @@ const login = async (data: LoginData): Promise<AuthResponse> => {
   try {
     console.log('Sending login data:', data);
     const response = await apiClient.post<BackendResponse>('register/login/', data);
-    
+
     console.log('Raw login response:', response);
-    
+
     if (response.data && response.data.access_token && response.data.user) {
       // Set token for future requests
       apiClient.defaults.headers.common['Authorization'] = `Token ${response.data.access_token}`;
-      
+
       // Return in the format expected by AuthContext
       return {
         user: response.data.user,
         access_token: response.data.access_token,
-        refresh_token: response.data.refresh_token
+        refresh_token: response.data.refresh_token,
+        instructor_profile: response.data.instructor_profile
       };
     } else {
       console.error('Unexpected login response structure:', response.data);
@@ -98,6 +106,40 @@ const login = async (data: LoginData): Promise<AuthResponse> => {
       throw error.response.data;
     }
     throw new Error('Login failed');
+  }
+};
+
+const instructorLogin = async (data: InstructorLoginData): Promise<AuthResponse> => {
+  try {
+    console.log('Sending instructor login data:', data);
+    const response = await apiClient.post<BackendResponse>('register/login/', {
+      username: data.employee_id,
+      password: data.password
+    });
+
+    console.log('Raw instructor login response:', response);
+
+    if (response.data && response.data.access_token && response.data.user) {
+      // Set token for future requests
+      apiClient.defaults.headers.common['Authorization'] = `Token ${response.data.access_token}`;
+
+      // Return in the format expected by AuthContext
+      return {
+        user: response.data.user,
+        access_token: response.data.access_token,
+        refresh_token: response.data.refresh_token,
+        instructor_profile: response.data.instructor_profile
+      };
+    } else {
+      console.error('Unexpected instructor login response structure:', response.data);
+      throw new Error('Invalid response structure from server');
+    }
+  } catch (error) {
+    console.error('Instructor login error details:', error);
+    if (axios.isAxiosError(error) && error.response) {
+      throw error.response.data;
+    }
+    throw new Error('Instructor login failed');
   }
 };
 
@@ -192,6 +234,7 @@ setupAxiosInterceptors();
 const authService = {
   register,
   login,
+  instructorLogin,
   logout,
   getCurrentUser,
   getProfile,

@@ -48,6 +48,7 @@ export interface Instructor {
   specialization?: string;
   experience_years?: number;
   hire_date?: string;
+  password?: string;
 }
 
 // Subject Interface
@@ -107,6 +108,7 @@ export const instructorService = {
   // Using the correct endpoint path that matches the backend URL configuration
   getAllInstructors: (): Promise<AxiosResponse<any>> => api.get('instructors/instructor/'),
   getInstructorById: (id: number): Promise<AxiosResponse<any>> => api.get(`instructors/instructor/${id}/`),
+  getInstructorProfile: (): Promise<AxiosResponse<any>> => api.get('instructors/profile/'),
   createInstructor: (data: Instructor | FormData): Promise<AxiosResponse<any>> => api.post('instructors/instructor/', data),
   updateInstructor: (id: number, data: Instructor | FormData): Promise<AxiosResponse<any>> => api.put(`instructors/instructor/${id}/`, data),
   deleteInstructor: (id: number): Promise<AxiosResponse<any>> => api.delete(`instructors/instructor/${id}/`),

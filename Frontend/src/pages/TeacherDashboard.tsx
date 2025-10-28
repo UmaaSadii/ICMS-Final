@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bar, Line } from 'react-chartjs-2';
 import { courseService, studentService } from '../api/apiService';
+import { instructorService, Instructor } from '../api/studentInstructorService';
 import AttendanceManagement from '../components/AttendanceManagement';
 import ResultUpload from '../components/ResultUpload';
 
@@ -35,6 +36,7 @@ ChartJS.register(
 const TeacherDashboard = () => {
   const { currentUser, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
 
   // Add header animation effect
   useEffect(() => {
@@ -49,6 +51,7 @@ const TeacherDashboard = () => {
     courses: [] as any[],
     students: [] as any[],
     departments: [] as any[],
+    profile: null as any,
     stats: {
       totalCourses: 5,
       totalStudents: 120,
@@ -62,9 +65,10 @@ const TeacherDashboard = () => {
   useEffect(() => {
     const fetchInstructorData = async () => {
       try {
-        const [coursesRes, studentsRes] = await Promise.all([
+        const [coursesRes, studentsRes, profileRes] = await Promise.all([
           courseService.getAllCourses(),
           studentService.getAllStudents(),
+          instructorService.getInstructorProfile(),
         ]);
 
         // Filter courses assigned to current instructor (assuming instructor ID is available)
@@ -78,7 +82,8 @@ const TeacherDashboard = () => {
         setInstructorData({
           courses: assignedCourses,
           students: studentsRes.data,
-          departments: [], // Will be populated if needed
+          departments: [] as any[], // Will be populated if needed
+          profile: profileRes.data,
           stats: {
             totalCourses: assignedCourses.length,
             totalStudents,
@@ -236,10 +241,12 @@ const TeacherDashboard = () => {
         <header className="bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg border-b border-indigo-300 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="bg-white bg-opacity-20 rounded-full p-2">
-                <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+              <div className="bg-white bg-opacity-20 rounded-full p-2 cursor-pointer" onClick={() => setActiveTab('profile')}>
+                <img
+                  src={instructorData.profile?.image ? `http://127.0.0.1:8000${instructorData.profile.image}` : '/static/images/default_user.png'}
+                  alt="Profile"
+                  className="h-10 w-10 rounded-full object-cover"
+                />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-white">
@@ -249,7 +256,7 @@ const TeacherDashboard = () => {
                   <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                   </svg>
-                  Welcome back, {currentUser?.username || 'Instructor'}
+                  Welcome back, {instructorData.profile?.name || 'Instructor'}
                 </p>
               </div>
             </div>
@@ -415,6 +422,87 @@ const TeacherDashboard = () => {
                         </span>
                       </div>
                     ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {activeTab === 'profile' && (
+              <motion.div
+                key="profile"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                {/* Instructor Profile */}
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold text-gray-800 mb-2">My Profile</h2>
+                  <p className="text-gray-600">View and manage your instructor profile information.</p>
+                </div>
+
+                <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+                  <div className="flex items-center mb-6">
+                    <div className="h-20 w-20 rounded-full bg-indigo-100 flex items-center justify-center mr-6">
+                      {instructorData.profile?.image ? (
+                        <img
+                          src={`http://127.0.0.1:8000${instructorData.profile.image}`}
+                          alt="Profile"
+                          className="h-20 w-20 rounded-full object-cover"
+                        />
+                      ) : (
+                        <svg className="h-12 w-12 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-900">{instructorData.profile?.name || currentUser?.username}</h3>
+                      <p className="text-gray-600">{instructorData.profile?.designation || 'Instructor'}</p>
+                      <p className="text-sm text-gray-500">Employee ID: {instructorData.profile?.employee_id}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h4>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Full Name</label>
+                          <p className="text-gray-900">{instructorData.profile?.name || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Phone</label>
+                          <p className="text-gray-900">{instructorData.profile?.phone || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Address</label>
+                          <p className="text-gray-900">{instructorData.profile?.address || 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-lg font-semibold text-gray-900 mb-4">Professional Information</h4>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Department</label>
+                          <p className="text-gray-900">{instructorData.profile?.department || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Specialization</label>
+                          <p className="text-gray-900">{instructorData.profile?.specialization || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Experience</label>
+                          <p className="text-gray-900">{instructorData.profile?.experience_years ? `${instructorData.profile.experience_years} years` : 'N/A'}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-600">Hire Date</label>
+                          <p className="text-gray-900">{instructorData.profile?.hire_date ? new Date(instructorData.profile.hire_date).toLocaleDateString() : 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </motion.div>
