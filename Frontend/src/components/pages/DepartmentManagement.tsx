@@ -10,6 +10,7 @@ interface Department {
   name: string;
   code: string;
   description: string;
+  num_semesters: number;
 }
 
 interface Course {
@@ -133,14 +134,14 @@ const DepartmentManagement: React.FC<DepartmentManagementProps> = ({ activeTab }
     setShowStudentModal(true);
   };
 
-  const getDepartmentStats = (departmentId: number) => {
+  const getDepartmentStats = (department: Department) => {
     const departmentCourses = courses.filter(course =>
-      course.semester_details?.department === departmentId
+      course.semester_details?.department === department.id
     );
 
     const totalCourses = departmentCourses.length;
     const totalCredits = departmentCourses.reduce((sum, course) => sum + course.credits, 0);
-    const semesterCount = new Set(departmentCourses.map(course => course.semester_details?.semester_id)).size;
+    const semesterCount = department.num_semesters;
 
     return {
       totalCourses,
@@ -326,7 +327,10 @@ const DepartmentManagement: React.FC<DepartmentManagementProps> = ({ activeTab }
     setGeneratingCourses(true);
     try {
       for (const departmentId of Array.from(selectedDepartments)) {
-        for (let semesterNumber = 1; semesterNumber <= 8; semesterNumber++) {
+        const department = departments.find(d => d.id === departmentId);
+        if (!department) continue;
+
+        for (let semesterNumber = 1; semesterNumber <= department.num_semesters; semesterNumber++) {
           await generateDummyCourses(departmentId, semesterNumber);
         }
       }
@@ -387,8 +391,26 @@ const DepartmentManagement: React.FC<DepartmentManagementProps> = ({ activeTab }
         </div>
       ) : (
         <div className="grid gap-8">
+          {/* Add Department Card */}
+          {canModifyDepartment && (
+            <div
+              className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-dashed border-gray-300 hover:border-indigo-400 transition-all duration-200 cursor-pointer group"
+              onClick={() => setShowDepartmentModal(true)}
+            >
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:from-indigo-200 group-hover:to-purple-200 transition-colors">
+                  <svg className="w-8 h-8 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Add New Department</h3>
+                <p className="text-gray-600">Create a new academic department</p>
+              </div>
+            </div>
+          )}
+
           {departments.map((dept) => {
-            const stats = getDepartmentStats(dept.id);
+            const stats = getDepartmentStats(dept);
             const isExpanded = expandedDepartments.has(dept.id);
 
             return (
@@ -496,10 +518,10 @@ const DepartmentManagement: React.FC<DepartmentManagementProps> = ({ activeTab }
                   </div>
                 </div>
 
-                {/* Display semesters 1-8 with courses */}
+                {/* Display semesters based on department's num_semesters */}
                 {isExpanded && (
                   <div className="space-y-4">
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((semesterNumber) => {
+                    {Array.from({ length: dept.num_semesters }, (_, i) => i + 1).map((semesterNumber) => {
                       const semesterCourses = getCoursesForSemester(semesterNumber, dept.id);
                       const totalCredits = semesterCourses.reduce((sum, course) => sum + course.credits, 0);
 
