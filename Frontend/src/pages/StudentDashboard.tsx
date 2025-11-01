@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
+import { announcementService } from "../api/apiService";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -19,10 +21,10 @@ import {
   CalendarDays,
   MessageSquare,
   Megaphone,
-  BookOpen,
   Bell,
 } from "lucide-react";
 import { Department, Semester } from "api/studentInstructorService";
+
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
@@ -32,36 +34,98 @@ interface Student {
   department: Department;
   semester: Semester;
   rollNo: string;
+  registration_number?: string;
+  batch?: string;
+  date_of_birth?: string;
+  gender?: string;
+  blood_group?: string;
+  phone?: string;
+  guardian_name?: string;
+  guardian_contact?: string;
+  address?: string;
   image?: string;
 }
 
 const StudentDashboard: React.FC = () => {
   const [studentData, setStudentData] = useState<Student | null>(null);
-  const [activeTab, setActiveTab] = useState("Dashboard");
+  const [activeTab, setActiveTab] = useState<string>("Dashboard");
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
   const [darkMode, setDarkMode] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [aiFeedback, setAiFeedback] = useState("");
+  const navigate = useNavigate();
 
- useEffect(() => {
-  const fetch = async () => {
-    try {
-      const token = JSON.parse(localStorage.getItem('auth') || '{}')?.access_token;
-      if (!token) return; 
-      const { data } = await axios.get('http://127.0.0.1:8000/api/students/profile/', {
-        headers: { Authorization: `Token ${token}` },
-      });
-      setStudentData(data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-  fetch();
-}, []);
+  // Fetch Student Profile
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = JSON.parse(localStorage.getItem("auth") || "{}")?.access_token;
+        if (!token) return;
+        const { data } = await axios.get("http://127.0.0.1:8000/api/students/profile/", {
+          headers: { Authorization: `Token ${token}` },
+        });
+        setStudentData(data);
+      } catch (err) {
+        console.error("Profile fetch error:", err);
+      }
+    };
+    fetchProfile();
+  }, []);
 
-  const handleLogout = () => {
-    alert("You have been logged out successfully!");
-  };
+  // Fetch Announcements
+  useEffect(() => {
+    const fetchAnnouncements = async () => {
+      try {
+        const { data } = await announcementService.getAllAnnouncements();
+        setAnnouncements(data);
+      } catch (err) {
+        console.error("Error fetching announcements:", err);
+      }
+    };
+    fetchAnnouncements();
+  }, []);
 
+  // Fetch Approved Events
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const authData = JSON.parse(localStorage.getItem("auth") || "{}");
+        const token = authData?.access_token;
+        if (!token) return;
+
+        const res = await axios.get("http://127.0.0.1:8000/api/events/", {
+          headers: { Authorization: `Token ${token}` },
+        });
+
+        console.log("Fetched Events Data:", res.data);
+        const allEvents = Array.isArray(res.data)
+          ? res.data
+          : res.data.results || [];
+
+        const approved = allEvents.filter(
+          (event: any) => event.status === "approved"
+        );
+        setEvents(approved);
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
+  // Logout Function
+const handleLogout = () => {
+  // 🔹 Remove authentication token
+  localStorage.removeItem("auth");
+  localStorage.removeItem("token");
+
+  // 🔹 Redirect to login page
+  navigate("/login", { replace: true });
+};
+
+  // Sidebar Menu
   const modules = [
     { name: "Dashboard", icon: <LayoutDashboard size={18} /> },
     { name: "Results", icon: <GraduationCap size={18} /> },
@@ -69,7 +133,6 @@ const StudentDashboard: React.FC = () => {
     { name: "Messaging", icon: <MessageSquare size={18} /> },
     { name: "Events", icon: <Megaphone size={18} /> },
     { name: "Announcements", icon: <Bell size={18} /> },
-    
   ];
 
   return (
@@ -100,14 +163,15 @@ const StudentDashboard: React.FC = () => {
             }}
           >
             <img
-  src={
-    studentData?.image
-      ? `http://127.0.0.1:8000${studentData.image}`
-      : "https://via.placeholder.com/150"
-  }
-  alt="Profile"
-  className="w-20 h-20 rounded-full border-4 border-blue-500 object-cover shadow-md"/>
-</div>
+              src={
+                studentData?.image
+                  ? `http://127.0.0.1:8000${studentData.image}`
+                  : "https://via.placeholder.com/150"
+              }
+              alt="Profile"
+              className="w-20 h-20 rounded-full border-4 border-blue-500 object-cover shadow-md"
+            />
+          </div>
 
           {/* Sidebar Modules */}
           <nav className="space-y-2">
@@ -124,7 +188,6 @@ const StudentDashboard: React.FC = () => {
                       : "hover:bg-gray-200 text-gray-700"
                   }`}
               >
-                {/* Blue Highlight Bar (active indicator) */}
                 {activeTab === item.name && (
                   <span className="absolute left-0 top-0 h-full w-1 bg-blue-600 rounded-r-md"></span>
                 )}
@@ -170,35 +233,6 @@ const StudentDashboard: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
             >
-              {/* Attendance Chart */}
-              <div
-                className={`rounded-2xl shadow-md p-6 ${
-                  darkMode ? "bg-gray-800" : "bg-white"
-                }`}
-              >
-                <h3 className="text-lg font-semibold mb-4 text-blue-600">
-                  Weekly Attendance Overview
-                </h3>
-                <Bar
-                  data={{
-                    labels: ["Week 1", "Week 2", "Week 3", "Week 4"],
-                    datasets: [
-                      {
-                        label: "Attendance %",
-                        data: [85, 90, 88, 94],
-                        backgroundColor: "rgba(59,130,246,0.7)",
-                        borderRadius: 6,
-                      },
-                    ],
-                  }}
-                  options={{
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, max: 100 } },
-                  }}
-                />
-              </div>
-
               {/* Results Chart */}
               <div
                 className={`rounded-2xl shadow-md p-6 ${
@@ -244,50 +278,196 @@ const StudentDashboard: React.FC = () => {
                   AI Performance Insight 🤖
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-300 leading-relaxed">
-                  {aiFeedback}
+                  {aiFeedback || "Your academic insights will appear here soon!"}
                 </p>
               </div>
             </motion.div>
           )}
 
-          {/* Profile */}
-          {activeTab === "Profile" && (
+          {/* Announcements */}
+          {activeTab === "Announcements" && (
             <motion.div
-              className={`rounded-2xl shadow-md p-6 max-w-xl ${
-                darkMode ? "bg-gray-800" : "bg-white"
-              }`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
             >
-              <h2 className="text-xl font-semibold mb-4 text-blue-600">
-                Profile Details
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">
+                📢 Latest Announcements
               </h2>
-              <div className="flex items-center gap-6 mb-4">
-                <img
-  src={
-    studentData?.image
-      ? `http://127.0.0.1:8000${studentData.image}`
-      : "https://via.placeholder.com/150"
-  }
-  alt="Profile"
-  className="w-20 h-20 rounded-full border-4 border-blue-500 object-cover shadow-md"/>
-
-                <div>
-                  <p className="font-semibold text-lg">{studentData?.name}</p>
-                  <p className="text-sm text-gray-400">{studentData?.email}</p>
-                </div>
-              </div>
-              <ul className="space-y-2 text-gray-600 dark:text-gray-300">
-               <li><strong>Department:</strong> {studentData?.department?.name || "N/A"}</li>
-              <li><strong>Semester:</strong> {studentData?.semester?.name || "N/A"}</li>
-             
-                </ul>
+              {announcements.length > 0 ? (
+                announcements.map((a: any, i: number) => (
+                  <div
+                    key={i}
+                    className="border-b border-gray-300 dark:border-gray-700 py-3 mb-3"
+                  >
+                    <h3 className="text-lg font-bold text-blue-600">{a.title}</h3>
+                    <p className="text-sm mt-2 text-gray-600 dark:text-gray-300">
+                      {a.message}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Posted on: {new Date(a.created_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-600 dark:text-gray-300">
+                  No announcements available.
+                </p>
+              )}
             </motion.div>
           )}
-        </div>
-      </main>
+
+          {/* Events */}
+          {activeTab === "Events" && (
+            <motion.div
+              className="bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-md"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <h2 className="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">
+                🎉 Approved Events
+              </h2>
+              {events.length > 0 ? (
+                <div className="grid md:grid-cols-2 gap-4">
+                  {events.map((event: any, i: number) => (
+                    <div
+                      key={i}
+                      className={`p-4 rounded-xl shadow transition-all ${
+                        darkMode ? "bg-gray-700" : "bg-gray-50"
+                      } hover:shadow-md border-l-4 border-blue-500`}
+                    >
+                      <h3 className="text-lg font-semibold text-blue-600">
+                        {event.title}
+                      </h3>
+                      <p className="text-sm mt-1 text-gray-600 dark:text-gray-300">
+                        {event.description || "No description available."}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-2">
+                        📅{" "}
+                        {event.date
+                          ? new Date(event.date).toLocaleDateString()
+                          : "N/A"}{" "}
+                        {`event.time && 🕒 ${event.time}`}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-gray-600 dark:text-gray-300">
+                  No approved events available.
+                </p>
+              )}
+            </motion.div>
+          )}
+
+          {/* Profile */}
+{activeTab === "Profile" && (
+  <motion.div
+    className={`rounded-2xl shadow-lg p-8 max-w-3xl mx-auto transition-all duration-500 ${
+      darkMode
+        ? "bg-gradient-to-br from-gray-800 to-gray-900"
+        : "bg-gradient-to-br from-white to-blue-50"
+    }`}
+    initial={{ opacity: 0, rotateY: 90 }}
+    animate={{ opacity: 1, rotateY: 0 }}
+    transition={{ duration: 0.7, ease: "easeOut" }}
+    style={{ transformStyle: "preserve-3d" }}
+  >
+    {/* Header */}
+    <div className="flex items-center justify-between mb-6">
+      <h2 className="text-2xl font-bold text-blue-600 flex items-center gap-2">
+        <GraduationCap className="text-blue-500" /> Student Profile
+      </h2>
+      <span
+        className={`px-3 py-1 text-xs rounded-full font-medium ${
+          darkMode ? "bg-blue-700 text-white" : "bg-blue-100 text-blue-700"
+        }`}
+      >
+        Reg. No: {studentData?.registration_number || "N/A"}
+      </span>
     </div>
-  );
+
+    {/* Profile Header */}
+    <motion.div
+      className="flex flex-col sm:flex-row items-center gap-6 mb-6"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 }}
+    >
+      <div className="relative">
+        <img
+          src={
+            studentData?.image
+              ? `http://127.0.0.1:8000${studentData.image}`
+              : "https://via.placeholder.com/150"
+          }
+          alt="Profile"
+          className="w-28 h-28 rounded-full border-4 border-blue-500 object-cover shadow-lg"
+        />
+        <span className="absolute bottom-1 right-1 bg-green-500 w-4 h-4 rounded-full border-2 border-white"></span>
+      </div>
+      <div className="text-center sm:text-left">
+        <h3 className="text-xl font-semibold text-gray-800 dark:text-white">
+          {studentData?.name}
+        </h3>
+        <p className="text-gray-500 text-sm">{studentData?.email}</p>
+        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          🎓 {studentData?.department?.name || "Department"} —{" "}
+          {studentData?.semester?.name || "Semester"}
+        </p>
+      </div>
+    </motion.div>
+
+    {/* Animated Info Cards */}
+    <div
+      className={`grid grid-cols-1 sm:grid-cols-2 gap-5 text-gray-700 dark:text-gray-300`}
+    >
+      {[
+        ["Batch", studentData?.batch],
+        ["Date of Birth", studentData?.date_of_birth],
+        ["Gender", studentData?.gender],
+        ["Blood Group", studentData?.blood_group],
+        ["Phone Number", studentData?.phone],
+        ["Guardian Name", studentData?.guardian_name],
+        ["Guardian Contact", studentData?.guardian_contact],
+        ["Residential Address", studentData?.address],
+      ].map(([label, value], idx) => (
+        <motion.div
+          key={idx}
+          initial={{ opacity: 0, rotateY: 90 }}
+          animate={{ opacity: 1, rotateY: 0 }}
+          transition={{ delay: 0.1 * idx, duration: 0.5 }}
+          style={{ transformStyle: "preserve-3d" }}
+          className={`p-4 rounded-xl border transition-all duration-300 ${
+            darkMode
+              ? "bg-gray-700 border-gray-600 hover:border-blue-400 hover:shadow-[0_0_10px_#3b82f6]"
+              : "bg-white border-gray-200 hover:border-blue-500 hover:shadow-[0_0_12px_#60a5fa]"
+          }`}
+        >
+          <p className="text-sm text-gray-500 dark:text-gray-400 font-medium">
+            {label}
+          </p>
+          <p className="font-semibold text-gray-800 dark:text-gray-100">
+            {value || "N/A"}
+          </p>
+        </motion.div>
+      ))}
+    </div>
+
+    {/* Footer */}
+    <div className="mt-8 text-center">
+      <p className="text-xs text-gray-500 dark:text-gray-400 italic">
+        Profile last updated on{" "}
+        <span className="font-medium text-blue-600">
+          {new Date().toLocaleDateString()}
+        </span>
+      </p>
+    </div>
+  </motion.div>
+)}
+</div>  
+</main> 
+</div>);  
 };
 
 export default StudentDashboard;

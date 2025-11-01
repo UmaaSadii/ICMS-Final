@@ -9,14 +9,17 @@ import StudentManagement from '../components/pages/StudentManagement';
 import DepartmentManagement from '../components/pages/DepartmentManagement';
 import CourseManagement from '../components/pages/CourseManagement';
 import TeacherManagement from '../components/pages/TeacherManagement';
-
+import EventManagement from '../components/pages/EventManagement';
 import MessagingSystem from '../components/messaging/MessagingSystem';
 import SystemHealthWidget from '../components/dashboard/SystemHealthWidget';
 import NotificationPanel from '../components/dashboard/NotificationPanel';
 import QuickActions from '../components/dashboard/QuickActions';
 import AIInsights from '../components/dashboard/AIInsights';
 import ActivityFeed from '../components/dashboard/ActivityFeed';
+import { announcementService } from '../api/apiService';
 import CalendarWidget from '../components/dashboard/CalendarWidget';
+import PrincipalManagement from '../components/pages/PrincipalManagement';
+
 import WeatherWidget from '../components/dashboard/WeatherWidget';
 import { jsPDF } from 'jspdf';
 
@@ -46,7 +49,7 @@ ChartJS.register(
   Legend
 );
 
-type TabId = 'dashboard' | 'students' | 'instructors' | 'departments' | 'courses' | 'results' | 'events' | 'messaging' | 'scholarships';
+type TabId = 'dashboard' | 'students' |'principal'| 'instructors' | 'departments' | 'courses' | 'results' | 'events' | 'messaging' | 'scholarships'|'announcements';
 
 const AdminDashboard = () => {
   const { currentUser, logout } = useAuth();
@@ -160,6 +163,37 @@ const AdminDashboard = () => {
 
     fetchDashboardData();
   }, []);
+
+  // 📢 Announcement state
+const [announcements, setAnnouncements] = useState<any[]>([]);
+const [newAnnouncement, setNewAnnouncement] = useState({ title: '', message: '' });
+
+// Fetch all announcements
+useEffect(() => {
+  const fetchAnnouncements = async () => {
+    try {
+      const { data } = await announcementService.getAllAnnouncements();
+      setAnnouncements(data);
+    } catch (error) {
+      console.error('Error fetching announcements:', error);
+    }
+  };
+  fetchAnnouncements();
+}, []);
+
+// Create new announcement
+const handleCreateAnnouncement = async (e: React.FormEvent) => {
+  e.preventDefault();
+  try {
+    await announcementService.createAnnouncement(newAnnouncement);
+    setNewAnnouncement({ title: '', message: '' });
+    const { data } = await announcementService.getAllAnnouncements();
+    setAnnouncements(data);
+    alert('✅ Announcement added successfully!');
+  } catch (error) {
+    console.error('Error creating announcement:', error);
+  }
+};
 
   // Fetch departments for results tab
   useEffect(() => {
@@ -545,9 +579,10 @@ const AdminDashboard = () => {
       { id: 'dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
       { id: 'students', label: 'Students', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
       { id: 'instructors', label: 'Instructors', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
+      { id: 'principal', label: 'Principal', icon: 'M12 2l9 4v2H3V6l9-4zm0 6a9 9 0 00-9 9v5h18v-5a9 9 0 00-9-9z' },
       { id: 'departments', label: 'Departments', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
       { id: 'results', label: 'Results', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-      
+      { id: 'announcements', label: 'Announcements', icon: 'M3 10v4a1 1 0 001 1h3l4 3V6l-4 3H4a1 1 0 00-1 1z' },
       { id: 'events', label: 'Events', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
       { id: 'messaging', label: 'Messaging', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z' },
       { id: 'scholarships', label: 'Scholarships', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
@@ -593,7 +628,7 @@ const AdminDashboard = () => {
             </button>
           </div>
           <div className="absolute bottom-4 right-4 text-center text-xs text-indigo-300">
-            <p>University Management</p>
+            <p>ICMS</p>
             <p>Version 1.0.0</p>
           </div>
         </nav>
@@ -1365,22 +1400,22 @@ const AdminDashboard = () => {
 
         {activeTab === 'students' && <StudentManagement activeTab={activeTab} />}
         {activeTab === 'instructors' && <TeacherManagement activeTab={activeTab} />}
+        {activeTab === 'principal' && <PrincipalManagement />}
         {activeTab === 'departments' && <DepartmentManagement activeTab={activeTab} />}
         {activeTab === 'courses' && <CourseManagement activeTab={activeTab} />}
         {activeTab === 'results' && renderResultsTab()}
         
        
         {activeTab === 'events' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="bg-white p-6 rounded-xl shadow-lg border border-gray-100"
-          >
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Events Management</h2>
-            <p className="text-gray-600">Events management functionality will be implemented here.</p>
-          </motion.div>
-        )}
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5 }}
+    className="bg-white p-6 rounded-xl shadow-lg border border-gray-100"
+  >
+    <EventManagement />
+  </motion.div>
+)}
         {activeTab === 'messaging' && <MessagingSystem />}
         {activeTab === 'scholarships' && (
           <motion.div
@@ -1393,6 +1428,66 @@ const AdminDashboard = () => {
             <p className="text-gray-600">Scholarship management functionality will be implemented here.</p>
           </motion.div>
         )}
+        {activeTab === 'announcements' && (
+  <motion.div
+    className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+  >
+    <h2 className="text-2xl font-bold text-blue-600 mb-4">📢 Manage Announcements</h2>
+
+    {/* Add Announcement Form */}
+    <form onSubmit={handleCreateAnnouncement} className="space-y-3 mb-6">
+      <input
+        type="text"
+        placeholder="Title"
+        value={newAnnouncement.title}
+        onChange={(e) =>
+          setNewAnnouncement({ ...newAnnouncement, title: e.target.value })
+        }
+        className="w-full p-2 border rounded-md dark:bg-gray-700"
+        required
+      />
+      <textarea
+        placeholder="Message"
+        value={newAnnouncement.message}
+        onChange={(e) =>
+          setNewAnnouncement({ ...newAnnouncement, message: e.target.value })
+        }
+        className="w-full p-2 border rounded-md dark:bg-gray-700"
+        rows={4}
+        required
+      />
+      <button
+        type="submit"
+        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
+      >
+        Add Announcement
+      </button>
+    </form>
+
+    {/* Announcement List */}
+    <div>
+      <h3 className="text-lg font-semibold mb-2">Existing Announcements</h3>
+      {announcements.length > 0 ? (
+        announcements.map((a: any, i: number) => (
+          <div
+            key={i}
+            className="border-b border-gray-300 dark:border-gray-700 py-3 mb-3"
+          >
+            <h4 className="text-blue-600 font-bold">{a.title}</h4>
+            <p className="text-gray-700 dark:text-gray-300">{a.message}</p>
+            <p className="text-xs text-gray-400">
+              Posted on: {new Date(a.created_at).toLocaleDateString()}
+            </p>
+          </div>
+        ))
+      ) : (
+        <p className="text-gray-500">No announcements yet.</p>
+      )}
+    </div>
+  </motion.div>
+)}
       </div>
     </div>
   );

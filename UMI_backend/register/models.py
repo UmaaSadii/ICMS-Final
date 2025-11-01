@@ -8,7 +8,10 @@ class User(AbstractUser):
         choices=[
             ("student", "Student"),
             ("instructor", "Instructor"),
-            ("admin", "Admin")
+            ("admin", "Admin"),
+            ("principal", "Principal"),
+            
+
         ],
         default="student"
     )

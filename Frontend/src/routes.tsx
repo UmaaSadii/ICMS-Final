@@ -10,9 +10,14 @@ import StudentProfile from './components/EnhancedStudentProfile';
 import TeacherDashboard from './pages/TeacherDashboard'; // Import TeacherDashboard
 
 import ResultManagement from './components/pages/ResultManagement';
+import PrincipalManagement from './components/pages/PrincipalManagement';
 import ProfessionalResultManagement from './components/pages/ResultManagement';
 import RegisterForm from 'components/pages/RegisterForm';
 import StudentLogin from  'pages/StudentLogin';
+import PrincipalDashboard from './pages/PrincipalDashboard';
+import EventManagement from './components/pages/EventManagement';
+import CreateEvent from "./components/pages/CreateEvent";
+
 //import TransportManagement from './components/pages/TransportManagement';
 
 
@@ -28,25 +33,26 @@ const AppRoutes: React.FC = () => {
   const { currentUser } = useAuth();
 
   // Determine redirect path based on user role
-  const getRedirectPath = () => {
-    if (!currentUser) return '/login';
+const getRedirectPath = () => {
+  if (!currentUser) return '/login';
 
-    switch (currentUser.role) {
-      case 'student':
-        return '/student';
-      case 'staff':
-        return '/staff';
-      case 'instructor': // Add instructor role
-        return '/teacher';
-      case 'admin':
-      case 'principal':
-      case 'director':
-        return '/admin';
-      default:
-        return '/dashboard';
-    }
-  };
-
+  switch (currentUser.role) {
+    case 'student':
+      return '/student';
+    case 'staff':
+      return '/staff';
+    case 'instructor':
+      return '/teacher';
+    case 'admin':
+      return '/admin';
+    case 'principal':
+      return '/principal';
+    case 'director':
+      return '/director';
+    default:
+      return '/dashboard';
+  }
+};
   return (
     <Routes>
       {/* Public routes */}
@@ -92,12 +98,20 @@ const AppRoutes: React.FC = () => {
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin-dashboard" element={<Navigate to="/admin" />} />
       </Route>
+      <Route element={<ProtectedRoute allowedRoles={['principal']} />}>
+  <Route path="/principal" element={<PrincipalDashboard />} />
+</Route>
+       <Route element={<ProtectedRoute allowedRoles={['admin', 'principal']} />}>
+  <Route path="/event-management" element={<EventManagement />} />
+</Route>
 
       {/* Result Management Routes */}
       <Route element={<ProtectedRoute allowedRoles={['admin', 'principal', 'director']} />}>
         <Route path="/result-management" element={<ResultManagement />} />
         <Route path="/professional-result-management" element={<ProfessionalResultManagement />} />
       </Route>
+{/* events */}
+      <Route path="/create-event" element={<CreateEvent />} />
       
       {/* Fallback route */}
       <Route path="*" element={<Navigate to={getRedirectPath()} />} />
@@ -111,7 +125,9 @@ const AppRoutes: React.FC = () => {
     currentUser?.role === "student"
       ? <StudentDashboard />
       : <Navigate to="/student-login" replace />
+      
   }
+  
 />
         
 

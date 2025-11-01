@@ -40,11 +40,10 @@ export const resultService = {
 
 // Event Service
 export const eventService = {
-  getAllEvents: () => api.get('events/'),
-  getEventById: (id: number) => api.get(`events/${id}/`),
-  createEvent: (data: any) => api.post('events/', data),
-  updateEvent: (id: number, data: any) => api.put(`events/${id}/`, data),
-  deleteEvent: (id: number) => api.delete(`events/${id}/`),
+  getAll: () => api.get("events/"),        // ✅ get all (auto filtered by backend)
+  create: (data: any) => api.post("events/", data),  // ✅ only admin can create
+  approve: (id: number) => api.post(`events/${id}/approve/`),  // ✅ principal only
+  reject: (id: number) => api.post(`events/${id}/reject/`),    // ✅ principal only
 };
 
 // Department Service

@@ -51,7 +51,9 @@ INSTALLED_APPS = [
     'academics',
     'instructors',
     'messaging',
-    'monitoring'
+    'monitoring',
+    'announcement',
+    'events',
 ]
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
