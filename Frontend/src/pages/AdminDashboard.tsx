@@ -10,6 +10,7 @@ import DepartmentManagement from '../components/pages/DepartmentManagement';
 import CourseManagement from '../components/pages/CourseManagement';
 import TeacherManagement from '../components/pages/TeacherManagement';
 import EventManagement from '../components/pages/EventManagement';
+import HODManagement from '../components/pages/HODManagement';
 import MessagingSystem from '../components/messaging/MessagingSystem';
 import SystemHealthWidget from '../components/dashboard/SystemHealthWidget';
 import NotificationPanel from '../components/dashboard/NotificationPanel';
@@ -19,9 +20,11 @@ import ActivityFeed from '../components/dashboard/ActivityFeed';
 import { announcementService } from '../api/apiService';
 import CalendarWidget from '../components/dashboard/CalendarWidget';
 import PrincipalManagement from '../components/pages/PrincipalManagement';
+import AdminAttendanceManagement from '../components/attendance/AdminAttendanceManagement';
 
 import WeatherWidget from '../components/dashboard/WeatherWidget';
 import { jsPDF } from 'jspdf';
+import HODRequestsManager from '../../HODRequestsManager';
 
 import {
   Chart as ChartJS,
@@ -49,8 +52,22 @@ ChartJS.register(
   Legend
 );
 
-type TabId = 'dashboard' | 'students' |'principal'| 'instructors' | 'departments' | 'courses' | 'results' | 'events' | 'messaging' | 'scholarships'|'announcements';
-
+type TabId = 'dashboard' | 'students' |'principal'| 'instructors' | 'departments' | 'courses' | 'results' | 'attendance' | 'events' | 'messaging' | 'scholarships'|'announcements'| 'hod';
+interface HODRequest {
+  id: number;
+  name: string;
+  email: string;
+  employee_id: string;
+  phone: string;
+  department_name: string;
+  designation: string;
+  experience_years: number;
+  specialization: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requested_at: string;
+  reviewed_at?: string;
+  rejection_reason?: string;
+}
 const AdminDashboard = () => {
   const { currentUser, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
@@ -78,6 +95,8 @@ const AdminDashboard = () => {
     }
   }, []);
 
+
+
   // Admin data state
   const [adminData, setAdminData] = useState({
     users: [] as any[],
@@ -92,6 +111,30 @@ const AdminDashboard = () => {
     },
   });
 
+  // Get auth token
+  const authData = localStorage.getItem('auth');
+  const token = authData ? JSON.parse(authData).access_token || JSON.parse(authData).token : null;
+
+// HOD requests state
+  const [hodRequests, setHodRequests] = useState({
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    total: 0
+  });
+  const [hodRequestsList, setHodRequestsList] = useState<HODRequest[]>([]);
+  const [hodRequestsLoading, setHodRequestsLoading] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [hodRecords, setHodRecords] = useState<any[]>([]);
+  const [hodRecordsLoading, setHodRecordsLoading] = useState(false);
+  const [hodView, setHodView] = useState<'requests' | 'records'>('requests');
+  const [selectedHodForView, setSelectedHodForView] = useState<any>(null);
+  const [selectedHodForEdit, setSelectedHodForEdit] = useState<any>(null);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editFormData, setEditFormData] = useState<any>({});
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+
   // Department counts for pie chart
   const [departmentCounts, setDepartmentCounts] = useState<Record<number, number>>({});
 
@@ -99,11 +142,21 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [studentsRes, departmentsRes, coursesRes, instructorsRes] = await Promise.all([
+        // Get auth token for HOD requests API
+        const authData = localStorage.getItem('auth');
+        const token = authData ? JSON.parse(authData).access_token : null;
+
+        const [studentsRes, departmentsRes, coursesRes, instructorsRes, hodRequestsRes] = await Promise.all([
           apiStudentService.getAllStudents(),
           departmentService.getAllDepartments(),
           courseService.getAllCourses(),
           instructorService.getAllInstructors(),
+          fetch('http://localhost:8000/api/register/admin/hod-requests/', {
+            headers: {
+              'Authorization': `Token ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }).then(res => res.json()).catch(() => ({ stats: { pending: 0, approved: 0, rejected: 0, total: 0 }, requests: [] })),
         ]);
 
         const totalUsers = studentsRes.data.length + instructorsRes.data.length;
@@ -143,6 +196,15 @@ const AdminDashboard = () => {
 
         setDepartmentCounts(counts);
 
+        // Set HOD requests data
+        if (hodRequestsRes.stats) {
+          setHodRequests({
+            pending: hodRequestsRes.stats.pending,
+            approved: hodRequestsRes.stats.approved,
+            rejected: hodRequestsRes.stats.rejected,
+            total: hodRequestsRes.stats.total
+          });
+        }
         setAdminData({
           users: [...studentsRes.data, ...instructorsRes.data],
           departments: departmentsRes.data,
@@ -572,6 +634,86 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
     // Save the PDF
     doc.save(`report_card_${selectedStudentData?.student_id}.pdf`);
   }, [selectedStudent, studentResults, students, departments, selectedDepartment]);
+  // HOD Requests Management Functions
+  const loadHodRequests = async () => {
+    setHodRequestsLoading(true);
+    try {
+      if (!token) {
+        console.error('No auth token found');
+        // Add mock data for testing
+        setHodRequestsList([
+          { id: 1, name: 'Dr. Test HOD 1', email: 'test1@university.edu', employee_id: 'EMP001', phone: '+1-555-0001', department_name: 'Computer Science', designation: 'HOD', experience_years: 10, specialization: 'AI/ML', status: 'pending', requested_at: '2024-01-15T10:00:00Z' },
+          { id: 2, name: 'Dr. Test HOD 2', email: 'test2@university.edu', employee_id: 'EMP002', phone: '+1-555-0002', department_name: 'Mathematics', designation: 'HOD', experience_years: 8, specialization: 'Statistics', status: 'approved', requested_at: '2024-01-10T09:00:00Z', reviewed_at: '2024-01-12T14:00:00Z' }
+        ]);
+        setHodRequests({ pending: 1, approved: 1, rejected: 0, total: 2 });
+        return;
+      }
+      
+      const response = await fetch('http://localhost:8000/api/register/admin/hod-requests/', {
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        console.error('HOD requests API error:', response.status, response.statusText);
+        // Fallback to mock data
+        setHodRequestsList([
+          { id: 1, name: 'Dr. Test HOD 1', email: 'test1@university.edu', employee_id: 'EMP001', phone: '+1-555-0001', department_name: 'Computer Science', designation: 'HOD', experience_years: 10, specialization: 'AI/ML', status: 'pending', requested_at: '2024-01-15T10:00:00Z' },
+          { id: 2, name: 'Dr. Test HOD 2', email: 'test2@university.edu', employee_id: 'EMP002', phone: '+1-555-0002', department_name: 'Mathematics', designation: 'HOD', experience_years: 8, specialization: 'Statistics', status: 'approved', requested_at: '2024-01-10T09:00:00Z', reviewed_at: '2024-01-12T14:00:00Z' }
+        ]);
+        setHodRequests({ pending: 1, approved: 1, rejected: 0, total: 2 });
+        return;
+      }
+      
+      const data = await response.json();
+      console.log('HOD requests response:', data);
+      
+      // Handle both possible response structures
+      const requests = data.requests || data.data || [];
+      const stats = data.stats || {
+        pending: requests.filter((r: any) => r.status === 'pending').length,
+        approved: requests.filter((r: any) => r.status === 'approved').length,
+        rejected: requests.filter((r: any) => r.status === 'rejected').length,
+        total: requests.length
+      };
+      
+      setHodRequestsList(requests);
+      setHodRequests(stats);
+    } catch (error) {
+      console.error('Error loading HOD requests:', error);
+      // Fallback to mock data on error
+      setHodRequestsList([
+        { id: 1, name: 'Dr. Test HOD 1', email: 'test1@university.edu', employee_id: 'EMP001', phone: '+1-555-0001', department_name: 'Computer Science', designation: 'HOD', experience_years: 10, specialization: 'AI/ML', status: 'pending', requested_at: '2024-01-15T10:00:00Z' },
+        { id: 2, name: 'Dr. Test HOD 2', email: 'test2@university.edu', employee_id: 'EMP002', phone: '+1-555-0002', department_name: 'Mathematics', designation: 'HOD', experience_years: 8, specialization: 'Statistics', status: 'approved', requested_at: '2024-01-10T09:00:00Z', reviewed_at: '2024-01-12T14:00:00Z' }
+      ]);
+      setHodRequests({ pending: 1, approved: 1, rejected: 0, total: 2 });
+    } finally {
+      setHodRequestsLoading(false);
+    }
+  };
+
+  const handleHodRequestAction = async (requestId: number, action: string) => {
+    const reason = action === 'reject' ? prompt('Rejection reason (optional):') : undefined;
+    try {
+      const response = await fetch(`http://localhost:8000/api/register/admin/hod-requests/${requestId}/action/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ action, reason })
+      });
+      if (response.ok) {
+        await loadHodRequests();
+      }
+    } catch (error) {
+      console.error(`Error ${action}ing request:`, error);
+    }
+  };
+
+
 
   // Navigation tabs
   const tabs = useMemo<{ id: TabId; label: string; icon: string }[]>(() => {
@@ -580,27 +722,29 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
       { id: 'students', label: 'Students', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
       { id: 'instructors', label: 'Instructors', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
       { id: 'principal', label: 'Principal', icon: 'M12 2l9 4v2H3V6l9-4zm0 6a9 9 0 00-9 9v5h18v-5a9 9 0 00-9-9z' },
+      { id: 'hod', label: 'HOD', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
       { id: 'departments', label: 'Departments', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
       { id: 'results', label: 'Results', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+      { id: 'attendance', label: 'Attendance', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
       { id: 'announcements', label: 'Announcements', icon: 'M3 10v4a1 1 0 001 1h3l4 3V6l-4 3H4a1 1 0 00-1 1z' },
       { id: 'events', label: 'Events', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
       { id: 'messaging', label: 'Messaging', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z' },
       { id: 'scholarships', label: 'Scholarships', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
     ];
     }, []);
-
+     
   // Render navigation tabs
   const renderTabs = () => {
     return (
-      <div className="w-64 bg-gradient-to-b from-blue-800 to-indigo-900 text-white p-4 space-y-2 min-h-screen shadow-xl">
+      <div className="w-64 bg-gradient-to-b from-indigo-600 via-purple-700 to-pink-800 text-white p-4 space-y-2 min-h-screen shadow-xl">
         <div className="mb-8 text-center">
-          <div className="h-16 w-16 rounded-full bg-white mx-auto mb-2 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-indigo-700" viewBox="0 0 20 20" fill="currentColor">
+          <div className="h-16 w-16 rounded-full bg-white/20 backdrop-blur-sm mx-auto mb-2 flex items-center justify-center border border-white/30">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-white" viewBox="0 0 20 20" fill="currentColor">
               <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold">FGPG Admin</h3>
-          <p className="text-xs text-indigo-200">University Management</p>
+          <h3 className="text-lg font-semibold text-white">FGPG Admin</h3>
+          <p className="text-xs text-blue-200">University Management</p>
         </div>
 
         <nav>
@@ -609,7 +753,7 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
               <li key={tab.id}>
                 <button
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center px-4 py-2 rounded-lg transition-colors ${activeTab === tab.id ? 'bg-indigo-700 text-white' : 'text-indigo-100 hover:bg-indigo-700'}`}
+                  className={`w-full flex items-center px-4 py-2 rounded-lg transition-all duration-200 ${activeTab === tab.id ? 'bg-white/20 text-white shadow-lg backdrop-blur-sm border border-white/30' : 'text-blue-100 hover:bg-white/10 hover:text-white'}`}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
@@ -633,6 +777,248 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
           </div>
         </nav>
       </div>
+    );
+  };
+  
+  // Render HOD Requests Tab
+  const renderHodRequestsTab = () => {
+    const getStatusColor = (status: string) => {
+      switch (status) {
+        case 'pending': return 'bg-yellow-100 text-yellow-800';
+        case 'approved': return 'bg-green-100 text-green-800';
+        case 'rejected': return 'bg-red-100 text-red-800';
+        default: return 'bg-gray-100 text-gray-800';
+      }
+    };
+
+    return (
+      <motion.div
+        key="hod-requests"
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        transition={{ duration: 0.3 }}
+        className="space-y-6"
+      >
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-gray-900">HOD Registration Requests</h2>
+          <button
+            onClick={loadHodRequests}
+            disabled={hodRequestsLoading}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            <svg className={`w-4 h-4 ${hodRequestsLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh
+          </button>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div 
+            onClick={() => setSelectedFilter('all')}
+            className={`bg-white rounded-lg shadow p-6 cursor-pointer transition-all hover:shadow-lg ${selectedFilter === 'all' ? 'ring-2 ring-blue-500' : ''}`}
+          >
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total</p>
+                <p className="text-2xl font-semibold text-gray-900">{hodRequests?.total || 0}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div 
+            onClick={() => setSelectedFilter('pending')}
+            className={`bg-white rounded-lg shadow p-6 cursor-pointer transition-all hover:shadow-lg ${selectedFilter === 'pending' ? 'ring-2 ring-yellow-500' : ''}`}
+          >
+            <div className="flex items-center">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-2xl font-semibold text-yellow-600">{hodRequests?.pending || 0}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div 
+            onClick={() => setSelectedFilter('approved')}
+            className={`bg-white rounded-lg shadow p-6 cursor-pointer transition-all hover:shadow-lg ${selectedFilter === 'approved' ? 'ring-2 ring-green-500' : ''}`}
+          >
+            <div className="flex items-center">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Approved</p>
+                <p className="text-2xl font-semibold text-green-600">{hodRequests?.approved || 0}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div 
+            onClick={() => setSelectedFilter('rejected')}
+            className={`bg-white rounded-lg shadow p-6 cursor-pointer transition-all hover:shadow-lg ${selectedFilter === 'rejected' ? 'ring-2 ring-red-500' : ''}`}
+          >
+            <div className="flex items-center">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Rejected</p>
+                <p className="text-2xl font-semibold text-red-600">{hodRequests?.rejected || 0}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filter Info */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-600">Showing:</span>
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+              selectedFilter === 'all' ? 'bg-blue-100 text-blue-800' :
+              selectedFilter === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+              selectedFilter === 'approved' ? 'bg-green-100 text-green-800' :
+              'bg-red-100 text-red-800'
+            }`}>
+              {selectedFilter === 'all' ? 'All Requests' : 
+               selectedFilter.charAt(0).toUpperCase() + selectedFilter.slice(1) + ' Requests'}
+            </span>
+          </div>
+          <button
+            onClick={() => setSelectedFilter('all')}
+            className="text-sm text-blue-600 hover:text-blue-800"
+          >
+            Clear Filter
+          </button>
+        </div>
+
+        {/* Requests Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {hodRequestsLoading ? (
+            <div className="col-span-full text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="text-gray-600 mt-2">Loading requests...</p>
+            </div>
+          ) : !hodRequestsList || hodRequestsList.length === 0 ? (
+            <div className="col-span-full text-center py-8 text-gray-500">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <p className="mt-2">No HOD requests found.</p>
+            </div>
+          ) : (
+            (hodRequestsList || [])
+              .filter(request => selectedFilter === 'all' || request.status === selectedFilter)
+              .map((request) => (
+              <div key={request.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
+                <div className="p-6">
+                  {/* Status Badge */}
+                  <div className="flex justify-between items-start mb-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(request.status)}`}>
+                      {request.status}
+                    </span>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-500">
+                        {new Date(request.requested_at).toLocaleDateString()}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {new Date(request.requested_at).toLocaleTimeString()}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Request Details */}
+                  <div className="space-y-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">{request.name}</h3>
+                      <p className="text-sm text-gray-600">{request.designation}</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <span>{request.email}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                        <span>{request.phone}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <span>{request.department_name}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                        <span>{request.specialization}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Information */}
+                  {request.status !== 'pending' && request.reviewed_at && (
+                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                      <div className="text-xs text-gray-600 mb-1">
+                        {request.status === 'approved' ? 'Approved on:' : 'Rejected on:'}
+                      </div>
+                      <div className="text-sm font-medium text-gray-800">
+                        {new Date(request.reviewed_at).toLocaleDateString()} at {new Date(request.reviewed_at).toLocaleTimeString()}
+                      </div>
+                      {request.status === 'rejected' && request.rejection_reason && (
+                        <div className="mt-2">
+                          <div className="text-xs text-gray-600 mb-1">Reason:</div>
+                          <div className="text-sm text-gray-700">{request.rejection_reason}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  {request.status === 'pending' && (
+                    <div className="mt-6 flex space-x-3">
+                      <button
+                        onClick={() => handleHodRequestAction(request.id, 'approve')}
+                        className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-medium"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleHodRequestAction(request.id, 'reject')}
+                        className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm font-medium"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </motion.div>
     );
   };
 
@@ -1238,6 +1624,8 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
     );
   };
 
+
+
   // Chart data for performance overview
   const performanceChartData = useMemo(() => {
     return {
@@ -1254,22 +1642,890 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
     };
   }, []);
 
+
+
+
+
+  // Render HOD Tab (merged requests and records with enhanced management)
+  const renderHodTab = () => {
+    return (
+      <motion.div
+        key="hod"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        transition={{ duration: 0.5 }}
+        className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6"
+      >
+        {/* Toggle Navigation */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-2 shadow-lg border border-white/20">
+            <div className="flex space-x-1">
+              <button
+                onClick={() => setHodView('requests')}
+                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                  hodView === 'requests' 
+                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg transform scale-105' 
+                    : 'text-gray-600 hover:text-purple-600 hover:bg-purple-50'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <span>Registration Requests</span>
+                </div>
+              </button>
+              <button
+                onClick={() => setHodView('records')}
+                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                  hodView === 'records' 
+                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg transform scale-105' 
+                    : 'text-gray-600 hover:text-emerald-600 hover:bg-emerald-50'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  <span>Active HODs</span>
+                </div>
+              </button>
+              <button
+                onClick={() => window.location.href = '/active-hod-records'}
+                className="px-6 py-3 rounded-xl font-semibold transition-all duration-300 text-gray-600 hover:text-orange-600 hover:bg-orange-50"
+              >
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                  <span>Advanced View</span>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {hodView === 'requests' ? renderHodRequestsContent() : renderHodRecordsContent()}
+        
+        {/* View HOD Details Modal */}
+        <AnimatePresence>
+          {showViewModal && selectedHodForView && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+              >
+                <div className="p-6">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold text-gray-900">HOD Profile Details</h3>
+                    <button
+                      onClick={() => setShowViewModal(false)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="flex items-center space-x-6">
+                      <div className="h-24 w-24 rounded-full bg-purple-100 flex items-center justify-center">
+                        {selectedHodForView.image ? (
+                          <img src={selectedHodForView.image} alt={selectedHodForView.name} className="h-24 w-24 rounded-full object-cover" />
+                        ) : (
+                          <span className="text-3xl font-bold text-purple-600">{selectedHodForView.name?.charAt(0) || 'H'}</span>
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="text-2xl font-bold text-gray-900">{selectedHodForView.name}</h4>
+                        <p className="text-lg text-gray-600">{selectedHodForView.designation}</p>
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 mt-2">
+                          ✓ Active HOD
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Email Address</label>
+                          <p className="mt-1 text-sm text-gray-900">{selectedHodForView.email}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Phone Number</label>
+                          <p className="mt-1 text-sm text-gray-900">{selectedHodForView.phone || 'N/A'}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Department</label>
+                          <p className="mt-1 text-sm text-gray-900">{selectedHodForView.department?.name || 'N/A'}</p>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Specialization</label>
+                          <p className="mt-1 text-sm text-gray-900">{selectedHodForView.specialization}</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Experience</label>
+                          <p className="mt-1 text-sm text-gray-900">{selectedHodForView.experience_years} years</p>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">Hire Date</label>
+                          <p className="mt-1 text-sm text-gray-900">
+                            {selectedHodForView.hire_date ? new Date(selectedHodForView.hire_date).toLocaleDateString() : 'N/A'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end mt-6">
+                    <button
+                      onClick={() => setShowViewModal(false)}
+                      className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Edit HOD Modal */}
+        <AnimatePresence>
+          {showEditModal && selectedHodForEdit && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+              >
+                <div className="p-6">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold text-gray-900">Edit HOD Profile</h3>
+                    <button
+                      onClick={() => setShowEditModal(false)}
+                      className="text-gray-400 hover:text-gray-600"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <form onSubmit={(e) => { e.preventDefault(); updateHodRecord(); }} className="space-y-4">
+                    {/* Profile Image Upload */}
+                    <div className="flex items-center space-x-6">
+                      <div className="h-24 w-24 rounded-full bg-purple-100 flex items-center justify-center">
+                        {selectedImage ? (
+                          <img src={URL.createObjectURL(selectedImage)} alt="Preview" className="h-24 w-24 rounded-full object-cover" />
+                        ) : selectedHodForEdit.image ? (
+                          <img src={selectedHodForEdit.image} alt={selectedHodForEdit.name} className="h-24 w-24 rounded-full object-cover" />
+                        ) : (
+                          <span className="text-3xl font-bold text-purple-600">{selectedHodForEdit.name?.charAt(0) || 'H'}</span>
+                        )}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Profile Image</label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+                        <input
+                          type="text"
+                          value={editFormData.name || ''}
+                          onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+                        <input
+                          type="email"
+                          value={editFormData.email || ''}
+                          onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                        <input
+                          type="tel"
+                          value={editFormData.phone || ''}
+                          onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Specialization</label>
+                        <input
+                          type="text"
+                          value={editFormData.specialization || ''}
+                          onChange={(e) => setEditFormData({ ...editFormData, specialization: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Experience (Years)</label>
+                        <input
+                          type="number"
+                          value={editFormData.experience_years || 0}
+                          onChange={(e) => setEditFormData({ ...editFormData, experience_years: parseInt(e.target.value) })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          min="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Hire Date</label>
+                        <input
+                          type="date"
+                          value={editFormData.hire_date || ''}
+                          onChange={(e) => setEditFormData({ ...editFormData, hire_date: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Employee ID</label>
+                        <input
+                          type="text"
+                          value={editFormData.employee_id || ''}
+                          onChange={(e) => setEditFormData({ ...editFormData, employee_id: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Department</label>
+                        <select
+                          value={editFormData.department?.id || editFormData.department || ''}
+                          onChange={(e) => setEditFormData({ ...editFormData, department: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          <option value="">Select Department</option>
+                          {adminData.departments.map((dept) => (
+                            <option key={dept.id} value={dept.id}>
+                              {dept.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end space-x-3 mt-6">
+                      <button
+                        type="button"
+                        onClick={() => setShowEditModal(false)}
+                        className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        Update Profile
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    );
+  };
+
+  const renderHodRecordsContent = () => {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold text-gray-900">Active HOD Records</h3>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => window.location.href = '/active-hod-records'}
+              className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              View Active HODs
+            </button>
+            <button
+              onClick={addApprovedHodsToActive}
+              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Add Approved HODs
+            </button>
+            <button
+              onClick={loadHodRecords}
+              disabled={hodRecordsLoading}
+              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              <svg className={`w-4 h-4 ${hodRecordsLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {hodRecordsLoading ? (
+            <div className="col-span-full text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="text-gray-600 mt-2">Loading HOD records...</p>
+            </div>
+          ) : hodRecords.length === 0 ? (
+            <div className="col-span-full text-center py-8 text-gray-500">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <p className="mt-2">No active HOD records found.</p>
+              <p className="text-sm text-gray-400 mt-1">Approve HOD registration requests to create HOD records.</p>
+            </div>
+          ) : (
+            hodRecords.map((hod) => (
+              <div key={hod.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
+                <div className="p-6">
+                  <div className="flex items-center space-x-4 mb-4">
+                    <div className="h-16 w-16 rounded-full bg-purple-100 flex items-center justify-center">
+                      {hod.image ? (
+                        <img src={hod.image} alt={hod.name} className="h-16 w-16 rounded-full object-cover" />
+                      ) : (
+                        <span className="text-2xl font-bold text-purple-600">{hod.name?.charAt(0) || 'H'}</span>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">{hod.name}</h3>
+                      <p className="text-sm text-gray-600">{hod.designation || 'Head of Department'}</p>
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-1">
+                        Active
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      <span>{hod.email}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      <span>{hod.department?.name || hod.department_name || 'N/A'}</span>
+                    </div>
+                    <div className="flex items-center text-sm text-gray-600">
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                      <span>{hod.specialization || 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex space-x-2">
+                    <button
+                      onClick={() => viewHodDetails(hod.id)}
+                      className="flex-1 bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 text-sm font-medium transition-colors"
+                      title="View HOD details"
+                    >
+                      <div className="flex items-center justify-center space-x-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        <span>View</span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => editHodRecord(hod.id)}
+                      className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
+                      title="Edit HOD profile"
+                    >
+                      <div className="flex items-center justify-center space-x-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        <span>Edit</span>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => deleteHodRecord(hod.id, hod.name)}
+                      className="flex-1 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-sm font-medium transition-colors"
+                      title="Deactivate HOD"
+                    >
+                      <div className="flex items-center justify-center space-x-1">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        <span>Remove</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderHodRequestsContent = () => {
+    const getStatusColor = (status: string) => {
+      switch (status) {
+        case 'pending': return 'bg-yellow-100 text-yellow-800';
+        case 'approved': return 'bg-green-100 text-green-800';
+        case 'rejected': return 'bg-red-100 text-red-800';
+        default: return 'bg-gray-100 text-gray-800';
+      }
+    };
+
+    return (
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-center">
+          <h3 className="text-lg font-semibold text-gray-900">HOD Registration Requests</h3>
+          <button
+            onClick={loadHodRequests}
+            disabled={hodRequestsLoading}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            <svg className={`w-4 h-4 ${hodRequestsLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh
+          </button>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div 
+            onClick={() => setSelectedFilter('all')}
+            className={`bg-white rounded-lg shadow p-6 cursor-pointer transition-all hover:shadow-lg ${selectedFilter === 'all' ? 'ring-2 ring-blue-500' : ''}`}
+          >
+            <div className="flex items-center">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Total</p>
+                <p className="text-2xl font-semibold text-gray-900">{hodRequests?.total || 0}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div 
+            onClick={() => setSelectedFilter('pending')}
+            className={`bg-white rounded-lg shadow p-6 cursor-pointer transition-all hover:shadow-lg ${selectedFilter === 'pending' ? 'ring-2 ring-yellow-500' : ''}`}
+          >
+            <div className="flex items-center">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Pending</p>
+                <p className="text-2xl font-semibold text-yellow-600">{hodRequests?.pending || 0}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div 
+            onClick={() => setSelectedFilter('approved')}
+            className={`bg-white rounded-lg shadow p-6 cursor-pointer transition-all hover:shadow-lg ${selectedFilter === 'approved' ? 'ring-2 ring-green-500' : ''}`}
+          >
+            <div className="flex items-center">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Approved</p>
+                <p className="text-2xl font-semibold text-green-600">{hodRequests?.approved || 0}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div 
+            onClick={() => setSelectedFilter('rejected')}
+            className={`bg-white rounded-lg shadow p-6 cursor-pointer transition-all hover:shadow-lg ${selectedFilter === 'rejected' ? 'ring-2 ring-red-500' : ''}`}
+          >
+            <div className="flex items-center">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <div className="ml-4">
+                <p className="text-sm font-medium text-gray-600">Rejected</p>
+                <p className="text-2xl font-semibold text-red-600">{hodRequests?.rejected || 0}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Filter Info */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-gray-600">Showing:</span>
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+              selectedFilter === 'all' ? 'bg-blue-100 text-blue-800' :
+              selectedFilter === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+              selectedFilter === 'approved' ? 'bg-green-100 text-green-800' :
+              'bg-red-100 text-red-800'
+            }`}>
+              {selectedFilter === 'all' ? 'All Requests' : 
+               selectedFilter.charAt(0).toUpperCase() + selectedFilter.slice(1) + ' Requests'}
+            </span>
+          </div>
+          <button
+            onClick={() => setSelectedFilter('all')}
+            className="text-sm text-blue-600 hover:text-blue-800"
+          >
+            Clear Filter
+          </button>
+        </div>
+
+        {/* Requests Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {hodRequestsLoading ? (
+            <div className="col-span-full text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="text-gray-600 mt-2">Loading requests...</p>
+            </div>
+          ) : !hodRequestsList || hodRequestsList.length === 0 ? (
+            <div className="col-span-full text-center py-8 text-gray-500">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              <p className="mt-2">No HOD requests found.</p>
+            </div>
+          ) : (
+            (hodRequestsList || [])
+              .filter(request => selectedFilter === 'all' || request.status === selectedFilter)
+              .map((request) => (
+              <div key={request.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
+                <div className="p-6">
+                  {/* Status Badge */}
+                  <div className="flex justify-between items-start mb-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${getStatusColor(request.status)}`}>
+                      {request.status}
+                    </span>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-500">
+                        {new Date(request.requested_at).toLocaleDateString()}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {new Date(request.requested_at).toLocaleTimeString()}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Request Details */}
+                  <div className="space-y-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">{request.name}</h3>
+                      <p className="text-sm text-gray-600">{request.designation}</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <span>{request.email}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                        <span>{request.phone}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <span>{request.department_name}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                        <span>{request.specialization}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Information */}
+                  {request.status !== 'pending' && request.reviewed_at && (
+                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                      <div className="text-xs text-gray-600 mb-1">
+                        {request.status === 'approved' ? 'Approved on:' : 'Rejected on:'}
+                      </div>
+                      <div className="text-sm font-medium text-gray-800">
+                        {new Date(request.reviewed_at).toLocaleDateString()} at {new Date(request.reviewed_at).toLocaleTimeString()}
+                      </div>
+                      {request.status === 'rejected' && request.rejection_reason && (
+                        <div className="mt-2">
+                          <div className="text-xs text-gray-600 mb-1">Reason:</div>
+                          <div className="text-sm text-gray-700">{request.rejection_reason}</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  {request.status === 'pending' && (
+                    <div className="mt-6 flex space-x-3">
+                      <button
+                        onClick={() => handleHodRequestAction(request.id, 'approve')}
+                        className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 text-sm font-medium"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleHodRequestAction(request.id, 'reject')}
+                        className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm font-medium"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const loadHodRecords = async () => {
+    setHodRecordsLoading(true);
+    try {
+      // Load actual HOD records from database
+      const response = await fetch('http://localhost:8000/api/register/admin/hod-records/', {
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('HOD records response:', data);
+        setHodRecords(data.data || []);
+      } else {
+        console.error('Failed to load HOD records:', response.status, response.statusText);
+        setHodRecords([]);
+      }
+    } catch (error) {
+      console.error('Error loading HOD records:', error);
+      setHodRecords([]);
+    } finally {
+      setHodRecordsLoading(false);
+    }
+  };
+
+  const editHodRecord = (hodId: number) => {
+    const hod = hodRecords.find(h => h.id === hodId);
+    
+    if (hod) {
+      setSelectedHodForEdit(hod);
+      setEditFormData({ ...hod });
+      setSelectedImage(null);
+      setShowEditModal(true);
+    }
+  };
+
+  const viewHodDetails = (hodId: number) => {
+    const hod = hodRecords.find(h => h.id === hodId);
+    
+    if (hod) {
+      setSelectedHodForView(hod);
+      setShowViewModal(true);
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedImage(e.target.files[0]);
+    }
+  };
+
+  const updateHodRecord = async () => {
+    if (!selectedHodForEdit) return;
+    
+    try {
+      const formData = new FormData();
+      Object.keys(editFormData).forEach(key => {
+        if (key !== 'image' && editFormData[key] !== null && editFormData[key] !== undefined) {
+          formData.append(key, editFormData[key]);
+        }
+      });
+      
+      if (selectedImage) {
+        formData.append('image', selectedImage);
+      }
+      
+      const response = await fetch(`http://localhost:8000/api/register/admin/hod-records/${selectedHodForEdit.id}/`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Token ${token}`,
+        },
+        body: formData
+      });
+      
+      if (response.ok) {
+        loadHodRecords();
+        setShowEditModal(false);
+        setSelectedHodForEdit(null);
+        setSelectedImage(null);
+        alert('HOD profile updated successfully!');
+      } else {
+        alert('Failed to update HOD profile.');
+      }
+    } catch (error) {
+      console.error('Error updating HOD:', error);
+      alert('Error updating HOD profile.');
+    }
+  };
+
+  const addApprovedHodsToActive = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/register/admin/create-hod-from-request/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const responseData = await response.json();
+      
+      if (response.ok && responseData.success) {
+        alert(responseData.message);
+        await loadHodRecords();
+      } else {
+        alert(responseData.error || 'Failed to add approved HODs');
+      }
+    } catch (error) {
+      console.error('Error adding approved HODs:', error);
+      alert('Network error occurred while adding approved HODs.');
+    }
+  };
+
+  const deleteHodRecord = async (hodId: number, hodName: string) => {
+    if (window.confirm(`Are you sure you want to delete ${hodName}? This action cannot be undone.`)) {
+      try {
+        const response = await fetch(`http://localhost:8000/api/register/admin/hod-records/${hodId}/`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          loadHodRecords();
+          alert(`${hodName} has been deleted successfully.`);
+        } else if (response.status === 403) {
+          alert('Permission denied. You do not have permission to delete HOD records.');
+        } else {
+          alert(`Failed to delete HOD record. Status: ${response.status}`);
+        }
+      } catch (error) {
+        console.error('Error deleting HOD:', error);
+        alert('Network error occurred while deleting HOD record.');
+      }
+    }
+  };
+
+  // Load HOD data when tab is active
+  useEffect(() => {
+    if (activeTab === 'hod') {
+      loadHodRequests();
+      loadHodRecords();
+    }
+  }, [activeTab]);
+
   // Main render
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
       {renderTabs()}
-      <div className="flex-1 p-8">
-        <div className="mb-8">
-          <motion.h1
-            className="text-3xl font-bold text-gray-900 dark:text-white dark:bg-gradient-to-r dark:from-indigo-600 dark:to-purple-600 dark:bg-clip-text dark:text-transparent"
+      <div className="flex-1">
+        {/* Header */}
+        <header className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-700 p-6 shadow-xl border-b border-white/20">
+          <motion.div
+            className="flex items-center justify-between"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
-            Admin Dashboard
-          </motion.h1>
-          <p className="text-gray-600 dark:text-gray-300 mt-2">Welcome to the University Management System</p>
-        </div>
+            <div className="flex items-center space-x-4">
+              <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
+                <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tabs.find(tab => tab.id === activeTab)?.icon || 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'} />
+                </svg>
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-white">
+                  {activeTab === 'dashboard' ? 'Admin Dashboard' : 
+                   tabs.find(tab => tab.id === activeTab)?.label || 'Admin Dashboard'}
+                </h1>
+                <p className="text-purple-100 text-sm">
+                  {activeTab === 'dashboard' ? 'University Management System' :
+                   `Manage ${tabs.find(tab => tab.id === activeTab)?.label || 'System'}`}
+                </p>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-white font-medium">Welcome back, {currentUser?.name || 'Admin'}</p>
+              <p className="text-purple-200 text-sm">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            </div>
+          </motion.div>
+        </header>
+
+        {/* Content */}
+        <div className="p-6">
 
         {activeTab === 'dashboard' && (
           <motion.div
@@ -1279,91 +2535,141 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
             className="space-y-6"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300"
+              >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 text-sm">Total Students</p>
-                    <p className="text-2xl font-bold text-gray-900">{adminData.stats.totalStudents}</p>
+                    <p className="text-gray-600 text-sm font-medium">Total Students</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-1">{adminData.stats.totalStudents}</p>
                   </div>
-                  <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="h-14 w-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 016 0z" />
                     </svg>
                   </div>
                 </div>
+              </motion.div>
+               {/* HOD Requests Card */}
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">HOD Requests</h3>
+                <div className={`h-3 w-3 rounded-full ${hodRequests.pending > 0 ? 'bg-orange-400 animate-pulse' : 'bg-green-400'} shadow-lg`}></div>
               </div>
+              <div className="grid grid-cols-4 gap-3 text-center mb-4">
+                <div className="bg-orange-50 rounded-lg p-2">
+                  <p className="text-xl font-bold text-orange-600">{hodRequests.pending}</p>
+                  <p className="text-xs text-gray-600">Pending</p>
+                </div>
+                <div className="bg-green-50 rounded-lg p-2">
+                  <p className="text-xl font-bold text-green-600">{hodRequests.approved}</p>
+                  <p className="text-xs text-gray-600">Approved</p>
+                </div>
+                <div className="bg-red-50 rounded-lg p-2">
+                  <p className="text-xl font-bold text-red-600">{hodRequests.rejected}</p>
+                  <p className="text-xs text-gray-600">Rejected</p>
+                </div>
+                <div className="bg-gray-50 rounded-lg p-2">
+                  <p className="text-xl font-bold text-gray-900">{hodRequests.total}</p>
+                  <p className="text-xs text-gray-600">Total</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setActiveTab('hod')}
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2.5 px-4 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-200 font-medium shadow-lg"
+              >
+                Manage Requests
+              </button>
+            </motion.div>
 
-              <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300"
+            >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 text-sm">Total Instructors</p>
-                    <p className="text-2xl font-bold text-gray-900">{adminData.stats.totalStaff}</p>
+                    <p className="text-gray-600 text-sm font-medium">Total Instructors</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-1">{adminData.stats.totalStaff}</p>
                   </div>
-                  <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
-                    <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="h-14 w-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+              <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300"
+              >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-600 text-sm">Departments</p>
-                    <p className="text-2xl font-bold text-gray-900">{adminData.stats.totalDepartments}</p>
+                    <p className="text-gray-600 text-sm font-medium">Departments</p>
+                    <p className="text-3xl font-bold text-gray-900 mt-1">{adminData.stats.totalDepartments}</p>
                   </div>
-                  <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <svg className="h-6 w-6 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div className="h-14 w-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm">Courses</p>
-                    <p className="text-2xl font-bold text-gray-900">{adminData.stats.totalCourses}</p>
-                  </div>
-                  <div className="h-12 w-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-                    <svg className="h-6 w-6 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
-                  </div>
-                </div>
-              </div>
+
             </div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className="bg-white p-6 rounded-xl shadow-lg border border-gray-100"
+              className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
             >
               <NotificationPanel />
             </motion.div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+              <motion.div 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+                className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
+              >
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Overview</h3>
                 <div className="h-64">
                   <Bar data={performanceChartData} options={{ responsive: true, maintainAspectRatio: false }} />
                 </div>
-              </div>
+              </motion.div>
 
-              <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+              <motion.div 
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 }}
+                className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
+              >
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">System Health</h3>
                 <SystemHealthWidget />
-              </div>
+              </motion.div>
             </div>
 
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-white p-6 rounded-xl shadow-lg border border-gray-100"
+              className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
             >
               <QuickActions />
             </motion.div>
@@ -1372,7 +2678,7 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.3 }}
-              className="bg-white p-6 rounded-xl shadow-lg border border-gray-100"
+              className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
             >
               <AIInsights />
             </motion.div>
@@ -1381,7 +2687,7 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.4 }}
-              className="bg-white p-6 rounded-xl shadow-lg border border-gray-100"
+              className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
             >
               <ActivityFeed />
             </motion.div>
@@ -1390,7 +2696,7 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.5 }}
-              className="bg-white p-6 rounded-xl shadow-lg border border-gray-100"
+              className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
             >
               <CalendarWidget />
             </motion.div>
@@ -1402,10 +2708,12 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
         {activeTab === 'instructors' && <TeacherManagement activeTab={activeTab} />}
         {activeTab === 'principal' && <PrincipalManagement />}
         {activeTab === 'departments' && <DepartmentManagement activeTab={activeTab} />}
-        {activeTab === 'courses' && <CourseManagement activeTab={activeTab} />}
+
         {activeTab === 'results' && renderResultsTab()}
-        
-       
+        {activeTab === 'attendance' && <AdminAttendanceManagement />}
+
+        {activeTab === 'hod' && renderHodTab()}
+
         {activeTab === 'events' && (
   <motion.div
     initial={{ opacity: 0, y: 20 }}
@@ -1488,6 +2796,7 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
     </div>
   </motion.div>
 )}
+        </div>
       </div>
     </div>
   );

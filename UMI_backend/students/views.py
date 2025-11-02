@@ -50,35 +50,52 @@ class StudentViewSet(viewsets.ModelViewSet):
         try:
             print(f"StudentViewSet create - Request data: {request.data}")
 
+            # Initialize student_data first
+            student_data = request.data.copy()
+            student_data.pop('password', None)  # Remove password from student data
+
             first_name = request.data.get("first_name")
             last_name = request.data.get("last_name")
             email = request.data.get("email")
-            registration_number = request.data.get("registration_number")
             password = request.data.get("password")
+            department_id = request.data.get("department_id") or request.data.get("department")
 
-            # Check if user already exists
-            if User.objects.filter(username=registration_number).exists():
-                return Response({"error": "User with this registration number already exists"}, status=status.HTTP_400_BAD_REQUEST)
+            # Set the name field from first_name and last_name
+            if first_name and last_name:
+                student_data['name'] = f"{first_name} {last_name}"
 
-            # Check if student already exists
-            if Student.objects.filter(student_id=registration_number).exists():
-                return Response({"error": "Student with this registration number already exists"}, status=status.HTTP_400_BAD_REQUEST)
+            # Check if user already exists by email
+            if User.objects.filter(email=email).exists():
+                return Response({"error": "User with this email already exists"}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Create linked User
+            # Get department for student ID generation
+            from academics.models import Department
+            try:
+                department = Department.objects.get(department_id=department_id)
+                # Ensure department is set in student_data
+                student_data['department'] = department.department_id
+            except Department.DoesNotExist:
+                return Response({"error": "Department not found"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            serializer = self.get_serializer(data=student_data)
+            serializer.is_valid(raise_exception=True)
+            student = serializer.save()  # This will auto-generate student_id
+            
+            # Create linked User with student_id as username
             user = User.objects.create_user(
-                username=registration_number,
+                username=student.student_id,
                 email=email,
                 password=password,
                 first_name=first_name,
                 last_name=last_name,
             )
+            
+            # Link user to student
+            student.user = user
+            student.save()
 
-            student_data = request.data.copy()
-            student_data["user"] = user.id
-
-            serializer = self.get_serializer(data=student_data)
-            serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer)
+            # Return updated student data
+            serializer = self.get_serializer(student)
 
             return Response(
                 {
@@ -140,6 +157,9 @@ class StudentViewSet(viewsets.ModelViewSet):
     # ✅ Delete student
     def destroy(self, request, *args, **kwargs):
         try:
+            student_id = kwargs.get('student_id')
+            if not student_id or student_id.strip() == '':
+                return Response({"error": "Student ID is required for deletion"}, status=status.HTTP_400_BAD_REQUEST)
             return super().destroy(request, *args, **kwargs)
         except Exception as e:
             return Response({"error": f"Cannot delete student: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)

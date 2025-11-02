@@ -3,9 +3,12 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bar, Line } from 'react-chartjs-2';
 import { courseService, studentService } from '../api/apiService';
-import { instructorService, Instructor } from '../api/studentInstructorService';
-import AttendanceManagement from '../components/AttendanceManagement';
+import AttendanceCards from '../components/attendance/AttendanceCards';
 import ResultUpload from '../components/ResultUpload';
+import InstructorProfileModal from '../components/modals/InstructorProfileModal';
+import InstructorTimetable from '../components/InstructorTimetable';
+import InstructorSchedule from '../components/InstructorSchedule';
+import InstructorProfile from '../components/InstructorProfile';
 
 import {
   Chart as ChartJS,
@@ -36,7 +39,9 @@ ChartJS.register(
 const TeacherDashboard = () => {
   const { currentUser, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showAdvancedProfile, setShowAdvancedProfile] = useState(false);
+  const [instructorProfile, setInstructorProfile] = useState<any>(null);
 
   // Add header animation effect
   useEffect(() => {
@@ -51,7 +56,6 @@ const TeacherDashboard = () => {
     courses: [] as any[],
     students: [] as any[],
     departments: [] as any[],
-    profile: null as any,
     stats: {
       totalCourses: 5,
       totalStudents: 120,
@@ -61,40 +65,64 @@ const TeacherDashboard = () => {
     },
   });
 
-  // Fetch real data for instructor dashboard stats
+  // Fetch instructor profile and dashboard data
   useEffect(() => {
     const fetchInstructorData = async () => {
       try {
-        const [coursesRes, studentsRes, profileRes] = await Promise.all([
+        // Fetch instructor profile using current user info
+        const token = localStorage.getItem('token');
+        console.log('Token:', token);
+        console.log('Current user:', currentUser);
+        
+        if (token) {
+          try {
+            const profileResponse = await fetch('http://localhost:8000/api/instructors/profile/', {
+              headers: {
+                'Authorization': `Token ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (profileResponse.ok) {
+              const profileData = await profileResponse.json();
+              console.log('Instructor profile data:', profileData);
+              setInstructorProfile(profileData);
+            } else {
+              console.error('Profile fetch failed:', profileResponse.status, profileResponse.statusText);
+            }
+          } catch (error) {
+            console.error('Profile fetch error:', error);
+          }
+        }
+
+        const [coursesRes, studentsRes] = await Promise.all([
           courseService.getAllCourses(),
           studentService.getAllStudents(),
-          instructorService.getInstructorProfile(),
         ]);
 
-        // Filter courses assigned to current instructor (assuming instructor ID is available)
+        // Filter courses assigned to current instructor
         const assignedCourses = coursesRes.data.filter((course: any) =>
           course.instructor === currentUser?.id
         );
 
-        // Calculate total students across assigned courses
-        const totalStudents = studentsRes.data.length; // Simplified, would need proper filtering
+        const totalStudents = studentsRes.data.length;
+
+
 
         setInstructorData({
           courses: assignedCourses,
           students: studentsRes.data,
-          departments: [] as any[], // Will be populated if needed
-          profile: profileRes.data,
+          departments: [],
           stats: {
             totalCourses: assignedCourses.length,
             totalStudents,
-            totalDepartments: 0, // Will be updated if departments are fetched
-            avgAttendance: 85, // Would need real calculation
-            pendingResults: 3, // Would need real calculation
+            totalDepartments: 0,
+            avgAttendance: 85,
+            pendingResults: 3,
           },
         });
       } catch (error) {
         console.error('Failed to fetch instructor dashboard data:', error);
-        // Keep default values if fetch fails
       }
     };
 
@@ -102,13 +130,12 @@ const TeacherDashboard = () => {
   }, [currentUser]);
 
   // Navigation tabs for instructor - limited access
-  const tabs = useMemo(() => {
-    return [
-      { id: 'dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-      { id: 'attendance', label: 'Mark Attendance', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
-      { id: 'results', label: 'Upload Results', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
-    ];
-  }, []);
+  const tabs = [
+    { id: 'dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+    { id: 'schedule', label: 'My Classes', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
+    { id: 'attendance', label: 'Mark Attendance', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+    { id: 'results', label: 'Upload Results', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+  ];
 
   // Render navigation tabs
   const renderTabs = () => {
@@ -140,6 +167,14 @@ const TeacherDashboard = () => {
               </li>
             ))}
           </ul>
+          <div className="mt-8">
+            <button
+              onClick={logout}
+              className="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200"
+            >
+              Logout
+            </button>
+          </div>
           <div className="absolute bottom-4 right-4 text-center text-xs text-indigo-300">
             <p>Teaching Portal</p>
             <p>Version 1.0.0</p>
@@ -241,13 +276,23 @@ const TeacherDashboard = () => {
         <header className="bg-gradient-to-r from-indigo-600 to-purple-600 shadow-lg border-b border-indigo-300 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="bg-white bg-opacity-20 rounded-full p-2 cursor-pointer" onClick={() => setActiveTab('profile')}>
-                <img
-                  src={instructorData.profile?.image ? `http://127.0.0.1:8000${instructorData.profile.image}` : '/static/images/default_user.png'}
-                  alt="Profile"
-                  className="h-10 w-10 rounded-full object-cover"
-                />
-              </div>
+              {/* Profile Picture */}
+              <button
+                onClick={() => {
+                  console.log('Profile clicked - opening advanced profile modal');
+                  setShowAdvancedProfile(true);
+                }}
+                className="relative group cursor-pointer hover:scale-105 transition-transform duration-200"
+                title="View Profile"
+              >
+                <div className="h-12 w-12 rounded-full border-2 border-white shadow-lg hover:border-indigo-200 transition-colors duration-200 bg-white flex items-center justify-center">
+                  <svg className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-green-400 border-2 border-white rounded-full animate-pulse"></div>
+              </button>
+              
               <div>
                 <h1 className="text-2xl font-bold text-white">
                   {tabs.find(tab => tab.id === activeTab)?.label || 'Dashboard'}
@@ -256,29 +301,14 @@ const TeacherDashboard = () => {
                   <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                   </svg>
-                  Welcome back, {instructorData.profile?.name || 'Instructor'}
+                  Welcome back, {instructorProfile?.name || currentUser?.username || 'Instructor'}
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-6">
-              <div className="text-right bg-white bg-opacity-10 rounded-lg p-3">
-                <p className="text-xs text-indigo-200 uppercase tracking-wide">Last Login</p>
-                <p className="text-sm font-semibold text-white flex items-center">
-                  <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {new Date().toLocaleDateString()}
-                </p>
-              </div>
-              <button
-                onClick={logout}
-                className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center space-x-2 shadow-md"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                <span>Logout</span>
-              </button>
+
+              
+
             </div>
           </div>
         </header>
@@ -398,6 +428,8 @@ const TeacherDashboard = () => {
                   </div>
                 </div>
 
+
+
                 {/* Recent Activities */}
                 <div className="bg-white p-4 rounded-xl shadow-lg border border-gray-100">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activities</h3>
@@ -427,89 +459,28 @@ const TeacherDashboard = () => {
               </motion.div>
             )}
 
-            {activeTab === 'profile' && (
+            {activeTab === 'schedule' && (
               <motion.div
-                key="profile"
+                key="schedule"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
               >
-                {/* Instructor Profile */}
-                <div className="mb-6">
-                  <h2 className="text-xl font-semibold text-gray-800 mb-2">My Profile</h2>
-                  <p className="text-gray-600">View and manage your instructor profile information.</p>
-                </div>
-
-                <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
-                  <div className="flex items-center mb-6">
-                    <div className="h-20 w-20 rounded-full bg-indigo-100 flex items-center justify-center mr-6">
-                      {instructorData.profile?.image ? (
-                        <img
-                          src={`http://127.0.0.1:8000${instructorData.profile.image}`}
-                          alt="Profile"
-                          className="h-20 w-20 rounded-full object-cover"
-                        />
-                      ) : (
-                        <svg className="h-12 w-12 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="text-2xl font-bold text-gray-900">{instructorData.profile?.name || currentUser?.username}</h3>
-                      <p className="text-gray-600">{instructorData.profile?.designation || 'Instructor'}</p>
-                      <p className="text-sm text-gray-500">Employee ID: {instructorData.profile?.employee_id}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h4>
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Full Name</label>
-                          <p className="text-gray-900">{instructorData.profile?.name || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Phone</label>
-                          <p className="text-gray-900">{instructorData.profile?.phone || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Address</label>
-                          <p className="text-gray-900">{instructorData.profile?.address || 'N/A'}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-900 mb-4">Professional Information</h4>
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Department</label>
-                          <p className="text-gray-900">{instructorData.profile?.department || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Specialization</label>
-                          <p className="text-gray-900">{instructorData.profile?.specialization || 'N/A'}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Experience</label>
-                          <p className="text-gray-900">{instructorData.profile?.experience_years ? `${instructorData.profile.experience_years} years` : 'N/A'}</p>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-gray-600">Hire Date</label>
-                          <p className="text-gray-900">{instructorData.profile?.hire_date ? new Date(instructorData.profile.hire_date).toLocaleDateString() : 'N/A'}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <InstructorSchedule />
               </motion.div>
             )}
 
             {activeTab === 'attendance' && (
-              <AttendanceManagement />
+              <motion.div
+                key="attendance"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.3 }}
+              >
+                <AttendanceCards />
+              </motion.div>
             )}
 
             {activeTab === 'results' && (
@@ -518,6 +489,34 @@ const TeacherDashboard = () => {
           </AnimatePresence>
         </main>
       </div>
+      
+
+      {/* Advanced Profile Modal */}
+      {showAdvancedProfile && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 50 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 50 }}
+            className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+          >
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex justify-between items-center rounded-t-2xl">
+              <h2 className="text-xl font-semibold text-gray-800">Instructor Profile</h2>
+              <button
+                onClick={() => setShowAdvancedProfile(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6">
+              <InstructorProfile />
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

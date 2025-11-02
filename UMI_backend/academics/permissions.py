@@ -1,37 +1,56 @@
-from rest_framework.permissions import BasePermission, SAFE_METHODS
-
-class AllowAnyReadOnly(BasePermission):
-    """
-    Custom permission to allow read-only access to any request.
-    Write access is restricted to authenticated users.
-    """
-    def has_permission(self, request, view):
-        if request.method in SAFE_METHODS:
-            return True
-        return request.user and request.user.is_authenticated
-
-class IsAdminRoleOrReadOnly(BasePermission):
-    """
-    Custom permission to only allow admin users to edit objects.
-    Read-only access is allowed to any request.
-    """
-    def has_permission(self, request, view):
-        if request.method in SAFE_METHODS:
-            return True
-        return request.user and request.user.is_authenticated and (
-            request.user.is_staff or
-            getattr(request.user, 'role', None) in ['admin', 'principal', 'director']
-        )
+from rest_framework.permissions import BasePermission
 
 class IsAdminOrInstructorForResultsAttendance(BasePermission):
     """
-    Custom permission to allow only admin or instructor users to modify results and attendance.
+    Permission class for results and attendance management.
+    Allows access to admin users and instructors.
     """
+    
     def has_permission(self, request, view):
-        if request.method in SAFE_METHODS:
+        # Check if user is authenticated
+        if not request.user or not request.user.is_authenticated:
+            return False
+        
+        # Allow admin users
+        if request.user.is_staff or request.user.is_superuser:
             return True
-        return request.user and request.user.is_authenticated and (
-            request.user.is_staff or
-            getattr(request.user, 'role', None) in ['admin', 'principal', 'director', 'instructor']
-        )
+        
+        # Check if user has instructor profile
+        if hasattr(request.user, 'instructor_profile'):
+            return True
+        
+        return False
 
+class IsAdminRoleOrReadOnly(BasePermission):
+    """
+    Permission class that allows admin users full access and read-only for others.
+    """
+    
+    def has_permission(self, request, view):
+        # Check if user is authenticated
+        if not request.user or not request.user.is_authenticated:
+            return False
+        
+        # Allow read operations for authenticated users
+        if request.method in ['GET', 'HEAD', 'OPTIONS']:
+            return True
+        
+        # Allow write operations only for admin users
+        return request.user.is_staff or request.user.is_superuser
+
+class AllowAnyReadOnly(BasePermission):
+    """
+    Permission class that allows read-only access to anyone.
+    """
+    
+    def has_permission(self, request, view):
+        # Allow read operations for anyone
+        if request.method in ['GET', 'HEAD', 'OPTIONS']:
+            return True
+        
+        # Require authentication for write operations
+        if not request.user or not request.user.is_authenticated:
+            return False
+        
+        # Allow write operations for authenticated users
+        return True

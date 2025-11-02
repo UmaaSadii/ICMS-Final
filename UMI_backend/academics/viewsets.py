@@ -15,13 +15,16 @@ class DepartmentViewSet(viewsets.ModelViewSet):
         department = serializer.save()
         # Auto-generate semesters based on num_semesters
         for i in range(1, department.num_semesters + 1):
-            Semester.objects.create(
-                name=f"Semester {i}",
-                semester_code=f"SEM{i}",
-                program=department.name,
-                capacity=30,
-                department=department
-            )
+            semester_code = f"{department.code}-SEM{i}"
+            # Check if semester already exists to avoid duplicates
+            if not Semester.objects.filter(semester_code=semester_code).exists():
+                Semester.objects.create(
+                    name=f"Semester {i}",
+                    semester_code=semester_code,
+                    program=department.name,
+                    capacity=30,
+                    department=department
+                )
 
     @action(detail=True, methods=['get'])
     def semesters(self, request, pk=None):

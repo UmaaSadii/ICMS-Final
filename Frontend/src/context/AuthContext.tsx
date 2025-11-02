@@ -6,7 +6,7 @@ import authService from "../api/authService";
 // Define types
 interface User {
   id: number;
-  role: "student" | "staff" | "admin" | "principal" | "director" | "instructor";
+  role: "student" | "staff" | "admin" | "principal" | "director" | "instructor" | "hod";
   username: string;
   email: string;
   [key: string]: any;
@@ -97,6 +97,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         navigate("/admin");
       } else if (authData.user.role === "instructor") {
         navigate("/teacher");
+      } else if (authData.user.role === "hod") {
+        navigate("/hod");
       } else if (authData.user.role === "staff") {
         navigate("/staff");
       } else if (authData.user.role === "student") {
@@ -118,21 +120,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       setError(null);
       const response = await authService.register(userData);
-      
+
       console.log('Registration response:', response);
-      
+
       if (!response.user) {
         throw new Error('No user data received from registration');
       }
-      
+
+      // Handle HOD registration (no auth tokens, just success message)
+      if (response.user.hod_request_pending) {
+        // Show success message and redirect to login
+        alert(response.message || 'HOD registration request submitted successfully. Please wait for admin approval.');
+        navigate("/login");
+        return;
+      }
+
       const authData: AuthData = {
         user: response.user,
         access_token: response.access_token,
         refresh_token: response.refresh_token
       };
-      
+
       console.log('Auth data being stored:', authData);
-      
+
       setCurrentUser(authData.user);
       localStorage.setItem('auth', JSON.stringify(authData));
       axios.defaults.headers.common['Authorization'] = `Token ${authData.access_token}`;

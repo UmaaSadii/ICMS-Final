@@ -61,6 +61,33 @@ class Course(models.Model):
     def __str__(self):
         return f"{self.name} ({self.code})"
 
+# ---------- Timetable ----------
+class Timetable(models.Model):
+    DAY_CHOICES = [
+        ('monday', 'Monday'),
+        ('tuesday', 'Tuesday'),
+        ('wednesday', 'Wednesday'),
+        ('thursday', 'Thursday'),
+        ('friday', 'Friday'),
+        ('saturday', 'Saturday'),
+        ('sunday', 'Sunday'),
+    ]
+    
+    timetable_id = models.AutoField(primary_key=True)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="timetables")
+    instructor = models.ForeignKey("instructors.Instructor", on_delete=models.CASCADE, related_name="timetables")
+    day = models.CharField(max_length=10, choices=DAY_CHOICES)
+    start_time = models.TimeField()
+    end_time = models.TimeField()
+    room = models.CharField(max_length=50, blank=True)
+    
+    class Meta:
+        unique_together = ['course', 'day', 'start_time']
+        ordering = ['day', 'start_time']
+    
+    def __str__(self):
+        return f"{self.course.name} - {self.day} {self.start_time}-{self.end_time}"
+
 # ---------- Attendance ----------
 class Attendance(models.Model):
     PRESENT = "Present"
@@ -70,15 +97,45 @@ class Attendance(models.Model):
 
     attendance_id = models.AutoField(primary_key=True)
     student = models.ForeignKey("students.Student", on_delete=models.CASCADE, related_name="attendances")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="attendances", null=True, blank=True)
+    instructor = models.ForeignKey("instructors.Instructor", on_delete=models.CASCADE, related_name="marked_attendances", null=True, blank=True)
+    timetable = models.ForeignKey(Timetable, on_delete=models.CASCADE, related_name="attendances", null=True, blank=True)
     date = models.DateField()
     status = models.CharField(max_length=10, choices=STATUS_CHOICES)
+    marked_by = models.ForeignKey("instructors.Instructor", on_delete=models.SET_NULL, null=True, blank=True, related_name="attendance_records")
+    is_submitted = models.BooleanField(default=False)
+    can_edit = models.BooleanField(default=True)
+    admin_approved_edit = models.BooleanField(default=False)
 
     class Meta:
-        unique_together = ("student", "date")  # 1 din me 1 hi record
+        unique_together = ("student", "timetable", "date")
         ordering = ["-date"]
 
     def __str__(self):
         return f"{self.student.name} - {self.date} ({self.status})"
+
+# ---------- Attendance Edit Permission ----------
+class AttendanceEditPermission(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ]
+    
+    permission_id = models.AutoField(primary_key=True)
+    instructor = models.ForeignKey("instructors.Instructor", on_delete=models.CASCADE, related_name="edit_requests")
+    attendance = models.ForeignKey(Attendance, on_delete=models.CASCADE, related_name="edit_permissions")
+    reason = models.TextField()
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    requested_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey("register.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="reviewed_permissions")
+    
+    class Meta:
+        ordering = ['-requested_at']
+    
+    def __str__(self):
+        return f"Edit request by {self.instructor.name} - {self.status}"
 
 
 # ---------- Result ----------

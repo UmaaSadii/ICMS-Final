@@ -32,11 +32,13 @@ interface AuthResponse {
 }
 
 interface BackendResponse {
-  message: string;
-  user: any;
-  access_token: string;
-  refresh_token: string;
+  message?: string;
+  user?: any;
+  access_token?: string;
+  refresh_token?: string;
   instructor_profile?: any;
+  status?: string;
+  request_id?: number;
 }
 
 // Create axios instance with default config
@@ -51,19 +53,37 @@ const register = async (data: RegisterData): Promise<AuthResponse> => {
   try {
     console.log('Sending registration data:', data);
     const response = await apiClient.post<BackendResponse>('register/registration/', data);
-    
+
     console.log('Raw registration response:', response);
-    
-    // Check if we have the expected response structure
+
+    // Handle HOD registration (no access_token, just success message)
+    if (response.data && response.data.message && response.data.status === 'pending' && !response.data.access_token) {
+      // This is a HOD registration request - return mock auth data
+      return {
+        user: {
+          id: response.data.request_id,
+          username: data.username,
+          email: data.email,
+          role: 'hod',
+          name: data.name || '',
+          hod_request_pending: true
+        },
+        access_token: '',
+        refresh_token: '',
+        message: response.data.message
+      };
+    }
+
+    // Check if we have the expected response structure for regular users
     if (response.data && response.data.access_token && response.data.user) {
       // Set token for future requests
       apiClient.defaults.headers.common['Authorization'] = `Token ${response.data.access_token}`;
-      
+
       // Return in the format expected by AuthContext
       return {
         user: response.data.user,
-        access_token: response.data.access_token,
-        refresh_token: response.data.refresh_token
+        access_token: response.data.access_token || '',
+        refresh_token: response.data.refresh_token || ''
       };
     } else {
       console.error('Unexpected response structure:', response.data);
@@ -92,8 +112,8 @@ const login = async (data: LoginData): Promise<AuthResponse> => {
       // Return in the format expected by AuthContext
       return {
         user: response.data.user,
-        access_token: response.data.access_token,
-        refresh_token: response.data.refresh_token,
+        access_token: response.data.access_token || '',
+        refresh_token: response.data.refresh_token || '',
         instructor_profile: response.data.instructor_profile
       };
     } else {
@@ -126,8 +146,8 @@ const instructorLogin = async (data: InstructorLoginData): Promise<AuthResponse>
       // Return in the format expected by AuthContext
       return {
         user: response.data.user,
-        access_token: response.data.access_token,
-        refresh_token: response.data.refresh_token,
+        access_token: response.data.access_token || '',
+        refresh_token: response.data.refresh_token || '',
         instructor_profile: response.data.instructor_profile
       };
     } else {

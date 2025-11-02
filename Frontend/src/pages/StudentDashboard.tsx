@@ -24,6 +24,8 @@ import {
   Bell,
 } from "lucide-react";
 import { Department, Semester } from "api/studentInstructorService";
+import AttendanceAnalytics from "../components/analytics/AttendanceAnalytics";
+import Timetable from "../components/timetable/Timetable";
 
 
 ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
@@ -54,6 +56,8 @@ const StudentDashboard: React.FC = () => {
   const [darkMode, setDarkMode] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [aiFeedback, setAiFeedback] = useState("");
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const navigate = useNavigate();
 
   // Fetch Student Profile
@@ -71,6 +75,25 @@ const StudentDashboard: React.FC = () => {
       }
     };
     fetchProfile();
+  }, []);
+
+  // Fetch Analytics Data
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const token = JSON.parse(localStorage.getItem("auth") || "{}")?.access_token;
+        if (!token) return;
+        const { data } = await axios.get("http://127.0.0.1:8000/api/students/analytics/dashboard/", {
+          headers: { Authorization: `Token ${token}` },
+        });
+        setAnalyticsData(data);
+        setAttendanceData(data.attendance_data || []);
+        setAiFeedback(data.performance_notes || "Your academic insights will appear here soon!");
+      } catch (err) {
+        console.error("Analytics fetch error:", err);
+      }
+    };
+    fetchAnalytics();
   }, []);
 
   // Fetch Announcements
@@ -130,6 +153,7 @@ const handleLogout = () => {
     { name: "Dashboard", icon: <LayoutDashboard size={18} /> },
     { name: "Results", icon: <GraduationCap size={18} /> },
     { name: "Attendance", icon: <CalendarDays size={18} /> },
+    { name: "Timetable", icon: <CalendarDays size={18} /> },
     { name: "Messaging", icon: <MessageSquare size={18} /> },
     { name: "Events", icon: <Megaphone size={18} /> },
     { name: "Announcements", icon: <Bell size={18} /> },
@@ -244,11 +268,11 @@ const handleLogout = () => {
                 </h3>
                 <Bar
                   data={{
-                    labels: ["Sem 1", "Sem 2", "Sem 3", "Sem 4"],
+                    labels: analyticsData?.gpa_trend?.map((item: any) => item.semester) || ["Sem 1", "Sem 2", "Sem 3", "Sem 4"],
                     datasets: [
                       {
                         label: "GPA",
-                        data: [2.8, 3.2, 3.5, 3.7],
+                        data: analyticsData?.gpa_trend?.map((item: any) => item.gpa) || [2.8, 3.2, 3.5, 3.7],
                         backgroundColor: "rgba(99,102,241,0.7)",
                         borderRadius: 6,
                       },
@@ -268,6 +292,42 @@ const handleLogout = () => {
                 />
               </div>
 
+              {/* Attendance Overview */}
+              <div
+                className={`rounded-2xl shadow-md p-6 ${
+                  darkMode ? "bg-gray-800" : "bg-white"
+                }`}
+              >
+                <h3 className="text-lg font-semibold mb-4 text-blue-600">
+                  Attendance Overview
+                </h3>
+                {attendanceData.length > 0 ? (
+                  <div className="space-y-3">
+                    {attendanceData.map((course: any, index: number) => (
+                      <div key={index} className="flex justify-between items-center">
+                        <span className="text-sm font-medium">{course.course}</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500">
+                            {course.present_classes}/{course.total_classes}
+                          </span>
+                          <div className="w-16 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full" 
+                              style={{ width: `${course.attendance_percentage}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs font-semibold">
+                            {course.attendance_percentage}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No attendance data available</p>
+                )}
+              </div>
+
               {/* AI Feedback */}
               <div
                 className={`md:col-span-2 rounded-2xl shadow-md p-6 ${
@@ -278,9 +338,29 @@ const handleLogout = () => {
                   AI Performance Insight 🤖
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-300 leading-relaxed">
-                  {aiFeedback || "Your academic insights will appear here soon!"}
+                  {aiFeedback}
                 </p>
               </div>
+            </motion.div>
+          )}
+
+          {/* Attendance */}
+          {activeTab === "Attendance" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <AttendanceAnalytics darkMode={darkMode} />
+            </motion.div>
+          )}
+
+          {/* Timetable */}
+          {activeTab === "Timetable" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <Timetable darkMode={darkMode} />
             </motion.div>
           )}
 

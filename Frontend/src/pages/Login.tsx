@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import authService from "../api/authService";
+import ForgotPassword from "../components/ForgotPassword";
 
 const Login = () => {
   const { login, error: authError, loading } = useAuth();
@@ -9,6 +10,7 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   
   // Sync auth context error with local error state
   useEffect(() => {
@@ -57,9 +59,15 @@ const Login = () => {
   };
 
   return (
+    <AnimatePresence mode="wait">
+      {showForgotPassword ? (
+        <ForgotPassword onBack={() => setShowForgotPassword(false)} />
+      ) : (
     <motion.div
+      key="login"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
       transition={{ duration: 0.5 }}
       className="bg-white rounded-lg shadow-md p-6 overflow-hidden"
     >
@@ -156,12 +164,18 @@ const Login = () => {
         </motion.button>
         
         <div className="text-center mt-4">
-          <a href="#" className="text-sm text-blue-600 hover:text-blue-800 transition-colors">
+          <button
+            type="button"
+            onClick={() => setShowForgotPassword(true)}
+            className="text-sm text-blue-600 hover:text-blue-800 transition-colors"
+          >
             Forgot your password?
-          </a>
+          </button>
         </div>
       </motion.form>
     </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 
