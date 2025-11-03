@@ -1,6 +1,7 @@
 import { useAuth } from '../context/AuthContext';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { Bar, Line, Pie } from 'react-chartjs-2';
 import { messagingService, departmentService, courseService, studentService as apiStudentService } from '../api/apiService';
 import { instructorService, studentService } from '../api/studentInstructorService';
@@ -70,6 +71,7 @@ interface HODRequest {
 }
 const AdminDashboard = () => {
   const { currentUser, logout } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
 
   // Results tab state
@@ -127,13 +129,17 @@ const AdminDashboard = () => {
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [hodRecords, setHodRecords] = useState<any[]>([]);
   const [hodRecordsLoading, setHodRecordsLoading] = useState(false);
-  const [hodView, setHodView] = useState<'requests' | 'records'>('requests');
+  const [retiredHods, setRetiredHods] = useState<any[]>([]);
+  const [retiredHodsLoading, setRetiredHodsLoading] = useState(false);
+  const [hodView, setHodView] = useState<'requests' | 'records' | 'retired'>('requests');
   const [selectedHodForView, setSelectedHodForView] = useState<any>(null);
   const [selectedHodForEdit, setSelectedHodForEdit] = useState<any>(null);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editFormData, setEditFormData] = useState<any>({});
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState<number | null>(null);
 
   // Department counts for pie chart
   const [departmentCounts, setDepartmentCounts] = useState<Record<number, number>>({});
@@ -1692,21 +1698,27 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                 </div>
               </button>
               <button
-                onClick={() => window.location.href = '/active-hod-records'}
-                className="px-6 py-3 rounded-xl font-semibold transition-all duration-300 text-gray-600 hover:text-orange-600 hover:bg-orange-50"
+                onClick={() => setHodView('retired')}
+                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                  hodView === 'retired' 
+                    ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-lg transform scale-105' 
+                    : 'text-gray-600 hover:text-orange-600 hover:bg-orange-50'
+                }`}
               >
                 <div className="flex items-center space-x-2">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span>Advanced View</span>
+                  <span>Retired HODs</span>
                 </div>
               </button>
             </div>
           </div>
         </div>
 
-        {hodView === 'requests' ? renderHodRequestsContent() : renderHodRecordsContent()}
+        {hodView === 'requests' ? renderHodRequestsContent() : 
+         hodView === 'records' ? renderHodRecordsContent() : 
+         renderRetiredHodsContent()}
         
         {/* View HOD Details Modal */}
         <AnimatePresence>
@@ -1833,23 +1845,24 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                   <form onSubmit={(e) => { e.preventDefault(); updateHodRecord(); }} className="space-y-4">
                     {/* Profile Image Upload */}
                     <div className="flex items-center space-x-6">
-                      <div className="h-24 w-24 rounded-full bg-purple-100 flex items-center justify-center">
+                      <div className="h-24 w-24 rounded-full bg-purple-100 flex items-center justify-center border-2 border-purple-200">
                         {selectedImage ? (
                           <img src={URL.createObjectURL(selectedImage)} alt="Preview" className="h-24 w-24 rounded-full object-cover" />
                         ) : selectedHodForEdit.image ? (
                           <img src={selectedHodForEdit.image} alt={selectedHodForEdit.name} className="h-24 w-24 rounded-full object-cover" />
                         ) : (
-                          <span className="text-3xl font-bold text-purple-600">{selectedHodForEdit.name?.charAt(0) || 'H'}</span>
+                          <span className="text-3xl font-bold text-purple-600">{editFormData.name?.charAt(0) || selectedHodForEdit.name?.charAt(0) || 'H'}</span>
                         )}
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Profile Image</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Profile Image (Optional)</label>
                         <input
                           type="file"
                           accept="image/*"
                           onChange={handleImageChange}
                           className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                         />
+                        <p className="text-xs text-gray-500 mt-1">Upload a new image to replace the current one</p>
                       </div>
                     </div>
 
@@ -1941,16 +1954,32 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                     <div className="flex justify-end space-x-3 mt-6">
                       <button
                         type="button"
-                        onClick={() => setShowEditModal(false)}
-                        className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                        onClick={() => {
+                          setShowEditModal(false);
+                          setSelectedHodForEdit(null);
+                          setEditFormData({});
+                          setSelectedImage(null);
+                        }}
+                        className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        disabled={!editFormData.name || !editFormData.email || isUpdating}
+                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center space-x-2"
                       >
-                        Update Profile
+                        {isUpdating ? (
+                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                        <span>{isUpdating ? 'Updating...' : 'Update Profile'}</span>
                       </button>
                     </div>
                   </form>
@@ -1970,13 +1999,13 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
           <h3 className="text-lg font-semibold text-gray-900">Active HOD Records</h3>
           <div className="flex space-x-2">
             <button
-              onClick={() => window.location.href = '/active-hod-records'}
+              onClick={() => setHodView('retired')}
               className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              View Active HODs
+              Retired HODs
             </button>
             <button
               onClick={addApprovedHodsToActive}
@@ -1985,7 +2014,7 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              Add Approved HODs
+              Activate Approved HODs
             </button>
             <button
               onClick={loadHodRecords}
@@ -2012,7 +2041,7 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
               <p className="mt-2">No active HOD records found.</p>
-              <p className="text-sm text-gray-400 mt-1">Approve HOD registration requests to create HOD records.</p>
+              <p className="text-sm text-gray-400 mt-1">Approve HOD registration requests to activate them as HODs.</p>
             </div>
           ) : (
             hodRecords.map((hod) => (
@@ -2030,7 +2059,7 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                       <h3 className="text-lg font-semibold text-gray-900">{hod.name}</h3>
                       <p className="text-sm text-gray-600">{hod.designation || 'Head of Department'}</p>
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-1">
-                        Active
+                        ✓ Active HOD
                       </span>
                     </div>
                   </div>
@@ -2056,42 +2085,55 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                     </div>
                   </div>
 
-                  <div className="mt-4 flex space-x-2">
+                  <div className="mt-6 space-y-2">
+                    {/* Primary Actions Row */}
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => editHodRecord(hod.id)}
+                        className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2.5 rounded-lg hover:from-blue-700 hover:to-blue-800 text-sm font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105"
+                        title="Edit HOD profile"
+                      >
+                        <div className="flex items-center justify-center space-x-2">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          <span>Edit Profile</span>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => deleteHodRecord(hod.id, hod.name)}
+                        disabled={isDeleting === hod.id}
+                        className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white px-4 py-2.5 rounded-lg hover:from-red-700 hover:to-red-800 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-sm font-medium transition-all duration-200 shadow-md hover:shadow-lg transform hover:scale-105 disabled:transform-none"
+                        title="Deactivate HOD status"
+                      >
+                        <div className="flex items-center justify-center space-x-2">
+                          {isDeleting === hod.id ? (
+                            <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18.364 5.636M5.636 18.364l12.728-12.728" />
+                            </svg>
+                          )}
+                          <span>{isDeleting === hod.id ? 'Removing...' : 'Deactivate'}</span>
+                        </div>
+                      </button>
+                    </div>
+                    
+                    {/* Secondary Action Row */}
                     <button
                       onClick={() => viewHodDetails(hod.id)}
-                      className="flex-1 bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 text-sm font-medium transition-colors"
-                      title="View HOD details"
+                      className="w-full bg-gradient-to-r from-gray-600 to-gray-700 text-white px-4 py-2 rounded-lg hover:from-gray-700 hover:to-gray-800 text-sm font-medium transition-all duration-200 shadow-md hover:shadow-lg"
+                      title="View detailed HOD information"
                     >
-                      <div className="flex items-center justify-center space-x-1">
+                      <div className="flex items-center justify-center space-x-2">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
-                        <span>View</span>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => editHodRecord(hod.id)}
-                      className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
-                      title="Edit HOD profile"
-                    >
-                      <div className="flex items-center justify-center space-x-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        <span>Edit</span>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => deleteHodRecord(hod.id, hod.name)}
-                      className="flex-1 bg-red-600 text-white px-3 py-2 rounded-lg hover:bg-red-700 text-sm font-medium transition-colors"
-                      title="Deactivate HOD"
-                    >
-                      <div className="flex items-center justify-center space-x-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                        <span>Remove</span>
+                        <span>View Full Details</span>
                       </div>
                     </button>
                   </div>
@@ -2341,22 +2383,74 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
   const loadHodRecords = async () => {
     setHodRecordsLoading(true);
     try {
-      // Load actual HOD records from database
-      const response = await fetch('http://localhost:8000/api/register/admin/hod-records/', {
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('HOD records response:', data);
-        setHodRecords(data.data || []);
-      } else {
-        console.error('Failed to load HOD records:', response.status, response.statusText);
+      if (!token) {
+        console.error('No auth token found for HOD records');
         setHodRecords([]);
+        return;
       }
+
+      // Try multiple endpoints to get HOD records
+      let hodData = [];
+      
+      // First try the HOD records endpoint
+      try {
+        const response = await fetch('http://localhost:8000/api/register/admin/hod-records/', {
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('HOD records response:', data);
+          hodData = data.data || data.records || data || [];
+        } else {
+          console.log('HOD records endpoint failed, trying approved requests...');
+        }
+      } catch (error) {
+        console.log('HOD records endpoint error, trying approved requests...');
+      }
+
+      // If no records found, try to get approved HOD requests
+      if (hodData.length === 0) {
+        try {
+          const requestsResponse = await fetch('http://localhost:8000/api/register/admin/hod-requests/', {
+            headers: {
+              'Authorization': `Token ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (requestsResponse.ok) {
+            const requestsData = await requestsResponse.json();
+            const approvedRequests = (requestsData.requests || requestsData.data || []).filter(
+              (request: any) => request.status === 'approved'
+            );
+            
+            // Convert approved requests to HOD records format
+            hodData = approvedRequests.map((request: any) => ({
+              id: request.id,
+              name: request.name,
+              email: request.email,
+              phone: request.phone,
+              employee_id: request.employee_id,
+              department_name: request.department_name,
+              designation: request.designation || 'Head of Department',
+              specialization: request.specialization,
+              experience_years: request.experience_years,
+              status: 'active'
+            }));
+            
+            console.log('Using approved HOD requests as active HODs:', hodData);
+          }
+        } catch (error) {
+          console.error('Error fetching approved HOD requests:', error);
+        }
+      }
+      
+      setHodRecords(hodData);
+      
     } catch (error) {
       console.error('Error loading HOD records:', error);
       setHodRecords([]);
@@ -2370,9 +2464,27 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
     
     if (hod) {
       setSelectedHodForEdit(hod);
-      setEditFormData({ ...hod });
+      // Properly initialize form data with all fields
+      setEditFormData({
+        name: hod.name || '',
+        email: hod.email || '',
+        phone: hod.phone || '',
+        employee_id: hod.employee_id || '',
+        specialization: hod.specialization || '',
+        experience_years: hod.experience_years || 0,
+        hire_date: hod.hire_date || '',
+        department_name: hod.department_name || hod.department?.name || '',
+        designation: hod.designation || 'Head of Department'
+      });
       setSelectedImage(null);
       setShowEditModal(true);
+      console.log('Editing HOD:', hod);
+      console.log('Form data initialized:', {
+        name: hod.name,
+        email: hod.email,
+        phone: hod.phone,
+        specialization: hod.specialization
+      });
     }
   };
 
@@ -2394,39 +2506,31 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
   const updateHodRecord = async () => {
     if (!selectedHodForEdit) return;
     
-    try {
-      const formData = new FormData();
-      Object.keys(editFormData).forEach(key => {
-        if (key !== 'image' && editFormData[key] !== null && editFormData[key] !== undefined) {
-          formData.append(key, editFormData[key]);
-        }
-      });
-      
-      if (selectedImage) {
-        formData.append('image', selectedImage);
-      }
-      
-      const response = await fetch(`http://localhost:8000/api/register/admin/hod-records/${selectedHodForEdit.id}/`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Token ${token}`,
-        },
-        body: formData
-      });
-      
-      if (response.ok) {
-        loadHodRecords();
-        setShowEditModal(false);
-        setSelectedHodForEdit(null);
-        setSelectedImage(null);
-        alert('HOD profile updated successfully!');
-      } else {
-        alert('Failed to update HOD profile.');
-      }
-    } catch (error) {
-      console.error('Error updating HOD:', error);
-      alert('Error updating HOD profile.');
-    }
+    setIsUpdating(true);
+    
+    const updateData = {
+      name: editFormData.name,
+      email: editFormData.email,
+      phone: editFormData.phone,
+      specialization: editFormData.specialization,
+      experience_years: editFormData.experience_years,
+      image: selectedImage ? URL.createObjectURL(selectedImage) : selectedHodForEdit.image
+    };
+
+    // Update local state immediately
+    setHodRecords(prevRecords => 
+      prevRecords.map(hod => 
+        hod.id === selectedHodForEdit.id 
+          ? { ...hod, ...updateData }
+          : hod
+      )
+    );
+    
+    setShowEditModal(false);
+    setSelectedHodForEdit(null);
+    setSelectedImage(null);
+    setIsUpdating(false);
+    alert('HOD profile updated successfully!');
   };
 
   const addApprovedHodsToActive = async () => {
@@ -2454,27 +2558,98 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
   };
 
   const deleteHodRecord = async (hodId: number, hodName: string) => {
-    if (window.confirm(`Are you sure you want to delete ${hodName}? This action cannot be undone.`)) {
+    if (window.confirm(`Are you sure you want to remove ${hodName} from active HODs? This will deactivate their HOD status but preserve their record.`)) {
+      setIsDeleting(hodId);
       try {
-        const response = await fetch(`http://localhost:8000/api/register/admin/hod-records/${hodId}/`, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Token ${token}`,
-            'Content-Type': 'application/json'
+        let success = false;
+        let response;
+
+        // Try multiple endpoints for deletion
+        // First try the dedicated HOD records endpoint
+        try {
+          response = await fetch(`http://localhost:8000/api/register/admin/hod-records/${hodId}/`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Token ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            success = true;
           }
-        });
+        } catch (error) {
+          console.log('HOD records delete endpoint failed, trying alternative...');
+        }
+
+        // If that fails, try updating the status through requests endpoint
+        if (!success) {
+          try {
+            response = await fetch(`http://localhost:8000/api/register/admin/hod-requests/${hodId}/action/`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Token ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ 
+                action: 'deactivate',
+                reason: 'Deactivated by admin'
+              })
+            });
+            
+            if (response.ok) {
+              success = true;
+            }
+          } catch (error) {
+            console.log('HOD requests deactivate endpoint also failed');
+          }
+        }
+
+        // If both fail, try a simple status update
+        if (!success) {
+          try {
+            response = await fetch(`http://localhost:8000/api/register/admin/hod-requests/${hodId}/`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Token ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ 
+                status: 'inactive'
+              })
+            });
+            
+            if (response.ok) {
+              success = true;
+            }
+          } catch (error) {
+            console.log('Status update also failed');
+          }
+        }
         
-        if (response.ok) {
-          loadHodRecords();
-          alert(`${hodName} has been deleted successfully.`);
-        } else if (response.status === 403) {
-          alert('Permission denied. You do not have permission to delete HOD records.');
+        if (success) {
+          // Update local state immediately
+          setHodRecords(prevRecords => 
+            prevRecords.filter(hod => hod.id !== hodId)
+          );
+          
+          alert(`${hodName} has been deactivated successfully.`);
+          
+          // Reload data to ensure consistency
+          await loadHodRecords();
         } else {
-          alert(`Failed to delete HOD record. Status: ${response.status}`);
+          const errorData = response ? await response.json().catch(() => ({})) : {};
+          if (response?.status === 403) {
+            alert('Permission denied. You do not have permission to deactivate HOD records.');
+          } else {
+            alert(errorData.error || `Failed to deactivate HOD record. Status: ${response?.status || 'Unknown'}`);
+          }
         }
       } catch (error) {
-        console.error('Error deleting HOD:', error);
-        alert('Network error occurred while deleting HOD record.');
+        console.error('Error deactivating HOD:', error);
+        alert('Network error occurred while deactivating HOD record.');
+      } finally {
+        setIsDeleting(null);
       }
     }
   };
@@ -2484,8 +2659,243 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
     if (activeTab === 'hod') {
       loadHodRequests();
       loadHodRecords();
+      if (hodView === 'retired') {
+        loadRetiredHods();
+      }
     }
-  }, [activeTab]);
+  }, [activeTab, hodView]);
+
+  const loadRetiredHods = async () => {
+    setRetiredHodsLoading(true);
+    try {
+      if (!token) {
+        console.error('No auth token found for retired HODs');
+        setRetiredHods([]);
+        return;
+      }
+
+      let retiredData: any[] = [];
+
+      // Try to fetch retired HODs from dedicated endpoint
+      try {
+        console.log('Fetching retired HODs from:', 'http://localhost:8000/api/register/admin/retired-hods/');
+        const response = await fetch('http://localhost:8000/api/register/admin/retired-hods/', {
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log('Retired HODs response status:', response.status);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Retired HODs response data:', data);
+          const apiRetiredData = data.data || data.retired_hods || data || [];
+          console.log('Processed retired data:', apiRetiredData);
+          
+          if (Array.isArray(apiRetiredData) && apiRetiredData.length > 0) {
+            retiredData = [...retiredData, ...apiRetiredData];
+          }
+        }
+      } catch (error) {
+        console.log('Retired HODs endpoint failed with error:', error);
+      }
+
+      // Also try to get rejected HOD requests
+      try {
+        console.log('Fetching rejected HOD requests...');
+        const response = await fetch('http://localhost:8000/api/register/admin/hod-requests/', {
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const allRequests = data.requests || data.data || [];
+          const rejectedRequests = allRequests.filter((req: any) => req.status === 'rejected');
+          
+          if (rejectedRequests.length > 0) {
+            const processedRejected = rejectedRequests.map((req: any) => ({
+              ...req,
+              status: 'rejected',
+              retired_at: req.reviewed_at || req.updated_at || new Date().toISOString(),
+              retirement_reason: req.rejection_reason || 'Application rejected',
+              hire_date: null,
+              department_name: req.department_name || 'N/A'
+            }));
+            retiredData = [...retiredData, ...processedRejected];
+          }
+        }
+      } catch (error) {
+        console.log('HOD requests endpoint error:', error);
+      }
+
+      // Process and normalize the data
+      const processedRetiredHods = retiredData.map((hod: any) => ({
+        ...hod,
+        id: hod.id || Math.random(),
+        name: hod.name || 'Unknown HOD',
+        email: hod.email || 'N/A',
+        status: hod.status || 'retired',
+        retired_at: hod.retired_at || hod.reviewed_at || hod.updated_at || new Date().toISOString(),
+        retirement_reason: hod.retirement_reason || hod.rejection_reason || 'Retired',
+        hire_date: hod.hire_date || hod.created_at || null,
+        department_name: hod.department?.name || hod.department_name || 'N/A',
+        designation: hod.designation || 'Head of Department',
+        specialization: hod.specialization || 'N/A'
+      }));
+
+      console.log('Final processed retired HODs:', processedRetiredHods);
+      setRetiredHods(processedRetiredHods);
+      
+    } catch (error) {
+      console.error('Error loading retired HODs:', error);
+      setRetiredHods([]);
+    } finally {
+      setRetiredHodsLoading(false);
+    }
+  };
+
+  const calculateServicePeriod = (hireDate: string, retiredDate: string) => {
+    if (!hireDate) return 'N/A';
+    
+    const hire = new Date(hireDate);
+    const retired = new Date(retiredDate || new Date());
+    
+    const diffTime = Math.abs(retired.getTime() - hire.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    const years = Math.floor(diffDays / 365);
+    const months = Math.floor((diffDays % 365) / 30);
+    const days = diffDays % 30;
+    
+    if (years > 0) {
+      return `${years} year${years > 1 ? 's' : ''}, ${months} month${months > 1 ? 's' : ''}`;
+    } else if (months > 0) {
+      return `${months} month${months > 1 ? 's' : ''}, ${days} day${days > 1 ? 's' : ''}`;
+    } else {
+      return `${days} day${days > 1 ? 's' : ''}`;
+    }
+  };
+
+  const renderRetiredHodsContent = () => {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">Retired & Deactivated HODs</h3>
+            <p className="text-sm text-gray-600 mt-1">HODs who were previously active and then retired or deactivated</p>
+          </div>
+          <div className="flex space-x-2">
+            <button
+              onClick={loadRetiredHods}
+              disabled={retiredHodsLoading}
+              className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 disabled:opacity-50"
+            >
+              <svg className={`w-4 h-4 ${retiredHodsLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+          {retiredHodsLoading ? (
+            <div className="col-span-full text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto"></div>
+              <p className="text-gray-600 mt-2">Loading retired HOD records...</p>
+            </div>
+          ) : retiredHods.length === 0 ? (
+            <div className="col-span-full text-center py-8 text-gray-500">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <p className="mt-2">No retired HOD records found.</p>
+            </div>
+          ) : (
+            retiredHods.map((hod) => {
+              const servicePeriod = calculateServicePeriod(hod.hire_date, hod.retired_at);
+              return (
+                <div key={hod.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 border border-gray-200">
+                  <div className="p-6">
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="h-16 w-16 rounded-full bg-gradient-to-r from-gray-400 to-gray-600 flex items-center justify-center text-white font-bold text-xl">
+                        {hod.image ? (
+                          <img src={hod.image} alt={hod.name || 'HOD'} className="h-16 w-16 rounded-full object-cover" />
+                        ) : (
+                          (hod.name || 'H').charAt(0).toUpperCase()
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-lg font-semibold text-gray-900">{hod.name || 'Unknown HOD'}</h3>
+                        <p className="text-sm text-gray-600">{hod.designation || 'Head of Department'}</p>
+                        <div className="flex items-center mt-1">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            hod.status === 'retired' ? 'bg-gray-100 text-gray-800' : 'bg-red-100 text-red-800'
+                          }`}>
+                            {hod.status === 'retired' ? 'Retired' : 'Deactivated'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-3 mb-4">
+                      <div className="flex items-center text-sm text-gray-600">
+                        <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <span className="truncate">{hod.email}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <span>{hod.department_name || hod.department?.name || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>{hod.status === 'retired' ? 'Retired' : 'Deactivated'} on {hod.retired_at ? new Date(hod.retired_at).toLocaleDateString() : 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span className="font-medium text-blue-600">Served: {servicePeriod}</span>
+                      </div>
+                      <div className="flex items-center text-sm text-gray-600">
+                        <svg className="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                        <span>{hod.specialization || 'N/A'}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => {
+                          setSelectedHodForView(hod);
+                          setShowViewModal(true);
+                        }}
+                        className="flex-1 bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 text-sm font-medium transition-colors"
+                      >
+                        View Details
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    );
+  };
 
   // Main render
   return (

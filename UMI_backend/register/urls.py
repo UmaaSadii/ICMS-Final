@@ -7,6 +7,8 @@ from .hod_views import HODRequestListView, HODRequestActionView
 from .hod_management_views import (
     HODRecordDetailView, HODRecordListView, HODDepartmentListView, HODStatsView, CreateHODFromRequestView
 )
+from .hod_profile_views import HODProfileView
+from .retired_hod_views import RetiredHODView
 
 urlpatterns = [
     path('registration/', register, name='register'),       # POST only
@@ -32,4 +34,10 @@ urlpatterns = [
     
     # Admin Dashboard
     path('admin/dashboard-cards/', admin_dashboard_cards, name='admin-dashboard-cards'),
+    
+    # HOD Profile Management
+    path('hod/profile/', HODProfileView.as_view(), name='hod-profile'),
+    
+    # Retired HOD Management
+    path('admin/retired-hods/', RetiredHODView.as_view(), name='retired-hods'),
 ]

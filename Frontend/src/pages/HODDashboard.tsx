@@ -4,8 +4,9 @@ import { motion } from 'framer-motion';
 import { instructorService } from '../api/studentInstructorService';
 import TimetableManagement from '../components/TimetableManagement';
 import InstructorProfile from '../components/InstructorProfile';
+import HODProfile from '../components/HODProfile';
 
-type TabId = 'dashboard' | 'instructors' | 'attendance' | 'timetable' | 'my-attendance';
+type TabId = 'dashboard' | 'instructors' | 'attendance' | 'timetable' | 'my-attendance' | 'profile';
 
 const HODDashboard = () => {
   const { currentUser, logout } = useAuth();
@@ -85,6 +86,8 @@ const HODDashboard = () => {
     { id: 'timetable', label: 'Timetable', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' }
   ];
 
+  const profileTab = { id: 'profile', label: 'My Profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' };
+
   const renderSidebar = () => (
     <div className="w-64 bg-gradient-to-b from-purple-800 to-indigo-900 text-white p-4 space-y-2 min-h-screen shadow-xl">
       <div className="mb-8 text-center">
@@ -120,6 +123,19 @@ const HODDashboard = () => {
               </button>
             </li>
           ))}
+          <li>
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`w-full flex items-center px-4 py-2 rounded-lg transition-colors ${
+                activeTab === 'profile' ? 'bg-purple-700 text-white' : 'text-purple-100 hover:bg-purple-700'
+              }`}
+            >
+              <svg className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={profileTab.icon} />
+              </svg>
+              <span>{profileTab.label}</span>
+            </button>
+          </li>
         </ul>
         <div className="mt-8">
           <button
@@ -350,6 +366,15 @@ const HODDashboard = () => {
             <p className="text-gray-600">Your attendance record will be displayed here...</p>
           </motion.div>
         );
+      case 'profile':
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <HODProfile />
+          </motion.div>
+        );
       default:
         return renderDashboard();
     }
@@ -455,7 +480,7 @@ const HODDashboard = () => {
               </button>
             </div>
             <div className="p-6">
-              <InstructorProfile />
+              <HODProfile />
             </div>
           </motion.div>
         </div>

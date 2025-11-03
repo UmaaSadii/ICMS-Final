@@ -21,6 +21,8 @@ import CreateEvent from "./components/pages/CreateEvent";
 import ActiveHODRecordsPage from './pages/ActiveHODRecordsPage';
 import ActiveHODDemo from './pages/ActiveHODDemo';
 import ResetPassword from './components/ResetPassword';
+import HODProfile from './components/HODProfile';
+import RetiredHODRecordsPage from './pages/RetiredHODRecordsPage';
 
 //import TransportManagement from './components/pages/TransportManagement';
 
@@ -97,6 +99,7 @@ const getRedirectPath = () => {
       <Route element={<ProtectedRoute allowedRoles={['hod']} />}>
         <Route path="/hod" element={<HODDashboard />} />
         <Route path="/hod-dashboard" element={<Navigate to="/hod" />} />
+        <Route path="/hod/profile" element={<HODProfile />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['admin', 'principal', 'director']} />}>
@@ -110,6 +113,7 @@ const getRedirectPath = () => {
   <Route path="/event-management" element={<EventManagement />} />
   <Route path="/active-hod-records" element={<ActiveHODRecordsPage />} />
   <Route path="/active-hod-demo" element={<ActiveHODDemo />} />
+  <Route path="/retired-hod-records" element={<RetiredHODRecordsPage />} />
 </Route>
 
       {/* Result Management Routes */}

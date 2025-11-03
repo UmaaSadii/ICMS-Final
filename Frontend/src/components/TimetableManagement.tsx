@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '../api/api';
 
 const TimetableManagement: React.FC = () => {
   const [selectedSemester, setSelectedSemester] = useState('');
@@ -37,16 +37,7 @@ const TimetableManagement: React.FC = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const storedAuth = localStorage.getItem('auth');
-      if (!storedAuth) {
-        throw new Error('No authentication data found');
-      }
-      const authData = JSON.parse(storedAuth);
-      const token = authData.access_token;
-
-      const response = await axios.get('http://localhost:8000/api/academics/hod/timetable/?action=form_data', {
-        headers: { Authorization: `Token ${token}` }
-      });
+      const response = await api.get('academics/hod/timetable/?action=form_data');
 
       console.log('Dashboard data:', response.data);
 
@@ -60,9 +51,9 @@ const TimetableManagement: React.FC = () => {
       // Load timetable data
       await fetchTimetable();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching dashboard data:', error);
-      // Don't set fallback data - let it show empty lists so real data is used
+      alert(error.message || 'Failed to load dashboard data. Please try again.');
       setSemesters([]);
       setAvailableCourses([]);
       setAvailableInstructors([]);
@@ -71,20 +62,11 @@ const TimetableManagement: React.FC = () => {
 
   const fetchTimetable = async () => {
     try {
-      const storedAuth = localStorage.getItem('auth');
-      if (!storedAuth) {
-        throw new Error('No authentication data found');
-      }
-      const authData = JSON.parse(storedAuth);
-      const token = authData.access_token;
-
       const url = selectedSemester
-        ? `http://localhost:8000/api/academics/hod/timetable/?semester_id=${selectedSemester}`
-        : 'http://localhost:8000/api/academics/hod/timetable/';
+        ? `academics/hod/timetable/?semester_id=${selectedSemester}`
+        : 'academics/hod/timetable/';
 
-      const response = await axios.get(url, {
-        headers: { Authorization: `Token ${token}` }
-      });
+      const response = await api.get(url);
 
       console.log('Timetable data:', response.data);
 
@@ -102,8 +84,9 @@ const TimetableManagement: React.FC = () => {
       });
       setTimetableData(formattedData);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching timetable:', error);
+      alert(error.message || 'Failed to load timetable. Please try again.');
     }
   };
 
@@ -117,40 +100,23 @@ const TimetableManagement: React.FC = () => {
     const key = `${day}-${time}`;
     const classData = timetableData[key];
 
-    if (classData?.id && window.confirm('Delete this class?')) {
+    if (classData?.id && window.confirm('Are you sure you want to delete this class?')) {
       try {
-        const storedAuth = localStorage.getItem('auth');
-        if (!storedAuth) {
-          throw new Error('No authentication data found');
-        }
-        const authData = JSON.parse(storedAuth);
-        const token = authData.access_token;
-
-        await axios.delete(`http://localhost:8000/api/academics/hod/timetable/${classData.id}/`, {
-          headers: { Authorization: `Token ${token}` }
-        });
+        await api.delete(`academics/hod/timetable/${classData.id}/`);
 
         const newData = { ...timetableData };
         delete newData[key];
         setTimetableData(newData);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error deleting class:', error);
+        alert(error.message || 'Failed to delete class. Please try again.');
       }
     }
   };
 
   const handleAddClass = async () => {
     try {
-      const storedAuth = localStorage.getItem('auth');
-      if (!storedAuth) {
-        throw new Error('No authentication data found');
-      }
-      const authData = JSON.parse(storedAuth);
-      const token = authData.access_token;
-
-      const response = await axios.post('http://localhost:8000/api/academics/hod/timetable/', newClass, {
-        headers: { Authorization: `Token ${token}` }
-      });
+      const response = await api.post('academics/hod/timetable/', newClass);
 
       if (response.data.timetable) {
         const entry = response.data.timetable;
@@ -180,7 +146,7 @@ const TimetableManagement: React.FC = () => {
       });
     } catch (error: any) {
       console.error('Error adding class:', error);
-      alert(error.response?.data?.error || 'Error adding class');
+      alert(error.message || 'Failed to add class. Please check your input and try again.');
     }
   };
 

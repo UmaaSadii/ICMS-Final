@@ -37,27 +37,26 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
     monday.setDate(today.getDate() + mondayOffset);
     
     const weekDays = [];
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     
     for (let i = 0; i < 7; i++) {
       const date = new Date(monday);
-      date.setDate(monday.getDate() + (i === 6 ? -1 : i)); // Sunday comes last
-      const dayIndex = i === 6 ? 0 : i + 1; // Adjust for Sunday
+      date.setDate(monday.getDate() + i);
       
       const isToday = date.toDateString() === today.toDateString();
       const isPast = date < today && !isToday;
       const isFuture = date > today;
       
       weekDays.push({
-        day: dayNames[dayIndex],
+        day: dayNames[i],
         date: date.getDate().toString(),
         month: date.toLocaleDateString('en-US', { month: 'short' }),
         fullDate: date.toISOString().split('T')[0],
-        key: `${dayNames[dayIndex]}-${date.getDate()}`,
+        key: `${dayNames[i]}-${date.getDate()}`,
         isToday,
         isPast,
         isFuture,
-        isEditable: isToday || (isPast && date >= new Date(today.getTime() - 24 * 60 * 60 * 1000)) // Today or yesterday
+        isEditable: isToday // Only today is editable
       });
     }
     
@@ -442,16 +441,11 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
                     </td>
                     {weekDays.map(day => (
                       <td key={day.key} className="py-4 px-2 text-center">
-                        {day.isEditable ? (
+                        {day.isToday ? (
                           <select
                             value={student.weeklyAttendance[day.key] || 'P'}
                             onChange={(e) => updateAttendance(student.id, day.key, e.target.value as 'P' | 'A' | 'L')}
-                            className={`w-12 h-8 text-xs font-bold border rounded focus:ring-2 focus:border-transparent ${
-                              day.isToday 
-                                ? 'border-blue-500 bg-blue-50 focus:ring-blue-500' 
-                                : 'border-gray-300 focus:ring-gray-500'
-                            }`}
-                            disabled={day.isFuture}
+                            className="w-12 h-8 text-xs font-bold border rounded focus:ring-2 focus:border-transparent border-blue-500 bg-blue-50 focus:ring-blue-500"
                           >
                             <option value="P">P</option>
                             <option value="A">A</option>
