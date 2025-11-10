@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import PrincipalFeedbackModal from "../components/PrincipalFeedbackModal";
 import { motion } from "framer-motion";
 import {
   PieChart,
@@ -49,6 +50,7 @@ const PrincipalDashboard: React.FC = () => {
   const [active, setActive] = useState("Dashboard");
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openPrincipalFeedback, setOpenPrincipalFeedback] = useState(false);
   const navigate = useNavigate();
 
   // 📊 Sample Data
@@ -74,7 +76,7 @@ const PrincipalDashboard: React.FC = () => {
     { name: "Community", value: 2 },
   ];
 
-  // 🚀 Fetch All Events (Admin-created)
+  // 🚀 Fetch Events
   const fetchEvents = async () => {
     try {
       const authData = JSON.parse(localStorage.getItem("auth") || "{}");
@@ -84,7 +86,6 @@ const PrincipalDashboard: React.FC = () => {
       const res = await axios.get("http://127.0.0.1:8000/api/events/", {
         headers: { Authorization: `Token ${token}` },
       });
-
       setEvents(res.data);
     } catch (error) {
       console.error("Error fetching events:", error);
@@ -199,6 +200,7 @@ const PrincipalDashboard: React.FC = () => {
         {/* Body */}
         <div className="p-6 overflow-y-auto">
           {active === "Events" ? (
+            // ✅ EVENTS TAB
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -259,14 +261,34 @@ const PrincipalDashboard: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 italic text-center">
-                  No events found for review.
-                </p>
+                <p className="text-gray-500 italic text-center">No events found for review.</p>
               )}
             </motion.div>
+          ) : active === "Reports" ? (
+            // ✅ FEEDBACK REPORT TAB
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4 }}
+              className="bg-white p-6 rounded-2xl shadow-lg"
+            >
+              <h2 className="text-xl font-semibold mb-4 text-indigo-700">
+                Feedback Reports
+              </h2>
+              <Button
+                onClick={() => setOpenPrincipalFeedback(true)}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                View Feedback Report
+              </Button>
+              <PrincipalFeedbackModal
+                isOpen={openPrincipalFeedback}
+                onClose={() => setOpenPrincipalFeedback(false)}
+              />
+            </motion.div>
           ) : (
+            // ✅ DASHBOARD TAB
             <>
-              {/* Stats */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 {stats.map((stat, index) => (
                   <motion.div
@@ -283,18 +305,14 @@ const PrincipalDashboard: React.FC = () => {
                 ))}
               </div>
 
-              {/* Charts */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Line Chart */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6 }}
                   className="bg-white p-6 rounded-2xl shadow-lg"
                 >
-                  <h2 className="text-xl font-semibold mb-4">
-                    Student Activity Trends
-                  </h2>
+                  <h2 className="text-xl font-semibold mb-4">Student Activity Trends</h2>
                   <ResponsiveContainer width="100%" height={250}>
                     <LineChart data={lineData}>
                       <CartesianGrid strokeDasharray="3 3" />
@@ -302,17 +320,11 @@ const PrincipalDashboard: React.FC = () => {
                       <YAxis />
                       <Tooltip />
                       <Legend />
-                      <Line
-                        type="monotone"
-                        dataKey="students"
-                        stroke="#4f46e5"
-                        strokeWidth={3}
-                      />
+                      <Line type="monotone" dataKey="students" stroke="#4f46e5" strokeWidth={3} />
                     </LineChart>
                   </ResponsiveContainer>
                 </motion.div>
 
-                {/* Pie Chart */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -322,19 +334,9 @@ const PrincipalDashboard: React.FC = () => {
                   <h2 className="text-xl font-semibold mb-4">Event Categories</h2>
                   <ResponsiveContainer width="100%" height={250}>
                     <PieChart>
-                      <Pie
-                        data={pieData}
-                        dataKey="value"
-                        nameKey="name"
-                        outerRadius={100}
-                        label
-                      >
+                      <Pie data={pieData} dataKey="value" nameKey="name" outerRadius={100} label>
                         {pieData.map((_, index) => (
-                          <Cell
-                            key={index}
-                            fill={COLORS[index % COLORS.length]}
-                            stroke="white"
-                          />
+                          <Cell key={index} fill={COLORS[index % COLORS.length]} stroke="white" />
                         ))}
                       </Pie>
                       <Tooltip />

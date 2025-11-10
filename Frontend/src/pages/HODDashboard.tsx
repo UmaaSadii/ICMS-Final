@@ -5,6 +5,8 @@ import { instructorService } from '../api/studentInstructorService';
 import TimetableManagement from '../components/TimetableManagement';
 import InstructorProfile from '../components/InstructorProfile';
 import HODProfile from '../components/HODProfile';
+import HODFeedbackModal from "../components/HODFeedbackModal";
+
 
 type TabId = 'dashboard' | 'instructors' | 'attendance' | 'timetable' | 'my-attendance' | 'profile';
 
@@ -16,6 +18,8 @@ const HODDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [hodProfile, setHodProfile] = useState<any>(null);
+  const [openFeedbackModal, setOpenFeedbackModal] = useState(false);
+
 
   // Load real data
   useEffect(() => {
@@ -388,6 +392,18 @@ const HODDashboard = () => {
         <header className="bg-gradient-to-r from-purple-600 to-indigo-600 shadow-lg border-b border-purple-300 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
+              <button
+             onClick={() => setOpenFeedbackModal(true)}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md shadow-md"
+             >
+             View Feedbacks
+             </button>
+             <HODFeedbackModal
+  isOpen={openFeedbackModal}
+  onClose={() => setOpenFeedbackModal(false)}
+/>
+
+
               {/* Profile Picture */}
               <button
                 onClick={() => {

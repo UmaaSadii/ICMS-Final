@@ -47,13 +47,14 @@ INSTALLED_APPS = [
     "corsheaders",
     'register.apps.RegisterConfig',
     'django_extensions',
+    
     'students',
     'academics',
     'instructors',
-    'messaging',
     'monitoring',
     'announcement',
     'events',
+    'feedback',
 ]
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [

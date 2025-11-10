@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User, HODRegistrationRequest
+from .models import User, HODRegistrationRequest,PrincipalRegistrationRequest
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -136,3 +136,19 @@ class HODSerializer(serializers.ModelSerializer):
         # Import here to avoid circular imports
         from instructors.models import HOD
         self.Meta.model = HOD
+
+     
+class PrincipalRegistrationRequestSerializer(serializers.ModelSerializer):
+    department_name = serializers.CharField(source='department.name', read_only=True)
+
+    class Meta:
+        model = PrincipalRegistrationRequest
+        fields = [
+            'id', 'name', 'email', 'employee_id', 'phone',
+            'department', 'department_name', 'designation',
+            'experience_years', 'specialization',
+            'status', 'requested_at', 'reviewed_at',
+            'rejection_reason', 'principal_request_status'
+        ]
+        read_only_fields = ['id', 'status', 'requested_at', 'reviewed_at', 'principal_request_status']
+   

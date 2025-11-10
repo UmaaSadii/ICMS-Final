@@ -1,0 +1,115 @@
+import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import axios from "axios";
+
+interface Feedback {
+  id: number;
+  feedback_type: string;
+  message: string;
+  rating: number;
+  teacher_name?: string;
+  visible_to_principal: boolean;
+}
+
+interface Props {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const HODFeedbackModal: React.FC<Props> = ({ isOpen, onClose }) => {
+  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) fetchFeedbacks();
+  }, [isOpen]);
+
+  const fetchFeedbacks = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get("http://127.0.0.1:8000/api/hod/feedbacks/");
+      setFeedbacks(res.data);
+    } catch (err) {
+      console.error("Error fetching feedbacks:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const allowFeedback = async (id: number) => {
+    try {
+      await axios.patch(`http://127.0.0.1:8000/api/hod/feedbacks/${id}/allow/`);
+      alert("Feedback allowed for principal!");
+      fetchFeedbacks();
+    } catch (err) {
+      console.error("Error allowing feedback:", err);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-3">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 30 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 30 }}
+        className="bg-white w-full max-w-3xl rounded-2xl shadow-lg overflow-hidden"
+      >
+        {/* Header */}
+        <div className="flex justify-between items-center bg-purple-600 text-white px-4 py-3">
+          <h2 className="text-lg font-semibold">All Anonymous Feedbacks</h2>
+          <button
+            onClick={onClose}
+            className="hover:text-gray-200 transition text-xl"
+          >
+            ✖
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 max-h-[70vh] overflow-y-auto">
+          {loading ? (
+            <p className="text-center text-gray-500">Loading feedbacks...</p>
+          ) : feedbacks.length === 0 ? (
+            <p className="text-center text-gray-500">No feedbacks available.</p>
+          ) : (
+            feedbacks.map((fb) => (
+              <div
+                key={fb.id}
+                className="border border-gray-200 rounded-xl p-4 mb-3 shadow-sm bg-gray-50"
+              >
+                <p className="font-semibold text-gray-800 mb-1">
+                  {fb.feedback_type === "teacher"
+                    ? `Teacher: ${fb.teacher_name || "Unknown"}`
+                    : "Institute Feedback"}
+                </p>
+                <p className="text-gray-600 mb-2">{fb.message}</p>
+                <p className="text-sm text-yellow-600 mb-3">
+                  ⭐ Rating: {fb.rating}
+                </p>
+
+                <div className="flex justify-end">
+                  {fb.visible_to_principal ? (
+                    <span className="text-green-600 font-medium">
+                      ✅ Sent to Principal
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => allowFeedback(fb.id)}
+                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-md text-sm transition"
+                    >
+                      Allow to Principal
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+export default HODFeedbackModal;

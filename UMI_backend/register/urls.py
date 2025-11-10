@@ -9,6 +9,11 @@ from .hod_management_views import (
 )
 from .hod_profile_views import HODProfileView
 from .retired_hod_views import RetiredHODView
+from .views import (
+    PrincipalRegistrationRequestView,
+    PrincipalRequestListView,
+    PrincipalApproveRejectView
+)
 
 urlpatterns = [
     path('registration/', register, name='register'),       # POST only
@@ -40,4 +45,10 @@ urlpatterns = [
     
     # Retired HOD Management
     path('admin/retired-hods/', RetiredHODView.as_view(), name='retired-hods'),
+
+
+    # Principal Registration Requests]
+     path('register-principal/', PrincipalRegistrationRequestView.as_view(), name='register-principal'),
+    path('principal-requests/', PrincipalRequestListView.as_view(), name='principal-requests'),
+    path('principal-requests/<int:pk>/update/', PrincipalApproveRejectView.as_view(), name='principal-approve-reject'),
 ]

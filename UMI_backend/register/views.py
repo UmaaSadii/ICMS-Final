@@ -4,6 +4,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status, generics
 from rest_framework.authtoken.models import Token
+from rest_framework.response import Response
+from .models import PrincipalRegistrationRequest
+from .serializers import PrincipalRegistrationRequestSerializer
 from django.contrib.auth import authenticate, get_user_model
 from .serializers import RegisterSerializer
 from .permissions import IsAdminUser
@@ -272,3 +275,57 @@ def admin_dashboard_cards(request):
             'color': 'warning' if pending_count > 0 else 'success'
         }
     })
+# views.py
+from rest_framework import generics, status
+
+
+class PrincipalRegistrationRequestView(generics.CreateAPIView):
+    queryset = PrincipalRegistrationRequest.objects.all()
+    serializer_class = PrincipalRegistrationRequestSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {"message": "Principal registration request submitted successfully."},
+            status=status.HTTP_201_CREATED
+        )
+
+
+class PrincipalRequestListView(generics.ListAPIView):
+    queryset = PrincipalRegistrationRequest.objects.all()
+    serializer_class = PrincipalRegistrationRequestSerializer
+
+
+class PrincipalApproveRejectView(generics.UpdateAPIView):
+    queryset = PrincipalRegistrationRequest.objects.all()
+    serializer_class = PrincipalRegistrationRequestSerializer
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        status_value = request.data.get("status")
+
+        if status_value not in ["approved", "rejected"]:
+            return Response({"error": "Invalid status value"}, status=status.HTTP_400_BAD_REQUEST)
+
+        instance.status = status_value
+        instance.reviewed_by = request.user
+        instance.reviewed_at = timezone.now()
+        instance.save()
+
+        if status_value == "approved":
+            user = User.objects.create_user(
+                username=instance.email.split('@')[0],
+                email=instance.email,
+                password=instance.password,
+                name=instance.name,
+                role="principal"
+            )
+            instance.principal_request_status = "account_created"
+            instance.save()
+
+        return Response(
+            {"message": f"Principal request {status_value} successfully."},
+            status=status.HTTP_200_OK
+        )

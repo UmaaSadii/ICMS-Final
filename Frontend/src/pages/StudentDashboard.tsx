@@ -3,6 +3,7 @@ import axios from "axios";
 import { announcementService } from "../api/apiService";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import FeedbackPopup from "../components/FeedbackPopup";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -57,6 +58,7 @@ const StudentDashboard: React.FC = () => {
   const [showProfile, setShowProfile] = useState(false);
   const [aiFeedback, setAiFeedback] = useState("");
   const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [openFeedback, setOpenFeedback] = useState<boolean>(false);
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const navigate = useNavigate();
 
@@ -154,7 +156,6 @@ const handleLogout = () => {
     { name: "Results", icon: <GraduationCap size={18} /> },
     { name: "Attendance", icon: <CalendarDays size={18} /> },
     { name: "Timetable", icon: <CalendarDays size={18} /> },
-    { name: "Messaging", icon: <MessageSquare size={18} /> },
     { name: "Events", icon: <Megaphone size={18} /> },
     { name: "Announcements", icon: <Bell size={18} /> },
   ];
@@ -247,6 +248,21 @@ const handleLogout = () => {
             {darkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
         </header>
+      {/* Feedback Button (Top Right corner under header) */}
+<div className="flex justify-end px-6 mt-4">
+  <button
+    onClick={() => setOpenFeedback(true)}
+    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-md transition"
+  >
+    Give Feedback
+  </button>
+</div>
+
+<FeedbackPopup isOpen={openFeedback} onClose={() => setOpenFeedback(false)} />
+  
+
+      
+          
 
         {/* Content */}
         <div className="p-6 overflow-y-auto">
@@ -291,6 +307,7 @@ const handleLogout = () => {
                   }}
                 />
               </div>
+              
 
               {/* Attendance Overview */}
               <div

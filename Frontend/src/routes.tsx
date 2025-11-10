@@ -11,6 +11,7 @@ import TeacherDashboard from './pages/TeacherDashboard'; // Import TeacherDashbo
 import HODDashboard from './pages/HODDashboard'; // Import HODDashboard
 
 import ResultManagement from './components/pages/ResultManagement';
+import HODFeedbackPage from 'components/pages/HODFeedbackPage';
 import PrincipalManagement from './components/pages/PrincipalManagement';
 import ProfessionalResultManagement from './components/pages/ResultManagement';
 import RegisterForm from 'components/pages/RegisterForm';
@@ -129,6 +130,10 @@ const getRedirectPath = () => {
     
         <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/student-login" element={<StudentLogin />} />
+      
+
+<Route path="/hod-feedbacks" element={<HODFeedbackPage />} />
+
 
 <Route
   path="/student/dashboard"

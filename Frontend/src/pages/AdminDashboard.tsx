@@ -53,7 +53,7 @@ ChartJS.register(
   Legend
 );
 
-type TabId = 'dashboard' | 'students' |'principal'| 'instructors' | 'departments' | 'courses' | 'results' | 'attendance' | 'events' | 'messaging' | 'scholarships'|'announcements'| 'hod';
+type TabId = 'dashboard' | 'students' |'principal'| 'instructors' | 'departments' | 'courses' | 'results' | 'attendance' | 'events' |'announcements'| 'hod';
 interface HODRequest {
   id: number;
   name: string;
@@ -734,8 +734,7 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
       { id: 'attendance', label: 'Attendance', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
       { id: 'announcements', label: 'Announcements', icon: 'M3 10v4a1 1 0 001 1h3l4 3V6l-4 3H4a1 1 0 00-1 1z' },
       { id: 'events', label: 'Events', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-      { id: 'messaging', label: 'Messaging', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z' },
-      { id: 'scholarships', label: 'Scholarships', icon: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
+      
     ];
     }, []);
      
@@ -3134,18 +3133,7 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
     <EventManagement />
   </motion.div>
 )}
-        {activeTab === 'messaging' && <MessagingSystem />}
-        {activeTab === 'scholarships' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="bg-white p-6 rounded-xl shadow-lg border border-gray-100"
-          >
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Scholarships</h2>
-            <p className="text-gray-600">Scholarship management functionality will be implemented here.</p>
-          </motion.div>
-        )}
+        
         {activeTab === 'announcements' && (
   <motion.div
     className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md"
