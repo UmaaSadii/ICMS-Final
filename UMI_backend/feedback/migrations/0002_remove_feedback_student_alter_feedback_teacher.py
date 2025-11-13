@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('feedback', '0001_initial'),
-        ('instructors', '0002_hod'),
+        ('instructors', '0002_delete_hod'),
     ]
 
     operations = [

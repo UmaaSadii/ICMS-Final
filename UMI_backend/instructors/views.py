@@ -76,13 +76,6 @@ class InstructorViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-<<<<<<< HEAD
-=======
-
-
-
-
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
     @action(detail=True, methods=['post'], url_path='upload-image',
             parser_classes=[MultiPartParser, FormParser],
@@ -148,20 +141,12 @@ class InstructorProfileView(APIView):
             # First try to get instructor profile
             try:
                 instructor = Instructor.objects.get(user=request.user)
-<<<<<<< HEAD
                 serializer = InstructorSerializer(instructor, context={'request': request})
-=======
-                serializer = InstructorSerializer(instructor)
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                 return Response(serializer.data, status=status.HTTP_200_OK)
             except Instructor.DoesNotExist:
                 # If not found as instructor, check if user is HOD from registration request
                 if request.user.role == 'hod':
-<<<<<<< HEAD
-                    from hods.models import HODRegistrationRequest
-=======
                     from register.models import HODRegistrationRequest
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                     try:
                         hod_request = HODRegistrationRequest.objects.get(
                             employee_id=request.user.username,
@@ -227,11 +212,7 @@ class InstructorProfileView(APIView):
                 
                 instructor.save()
                 
-<<<<<<< HEAD
                 serializer = InstructorSerializer(instructor, context={'request': request})
-=======
-                serializer = InstructorSerializer(instructor)
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                 return Response({
                     'success': True,
                     'message': 'Profile updated successfully',
@@ -241,11 +222,7 @@ class InstructorProfileView(APIView):
             except Instructor.DoesNotExist:
                 # If not found as instructor, check if user is HOD
                 if request.user.role == 'hod':
-<<<<<<< HEAD
-                    from hods.models import HODRegistrationRequest
-=======
                     from register.models import HODRegistrationRequest
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                     try:
                         hod_request = HODRegistrationRequest.objects.get(
                             employee_id=request.user.username,
@@ -306,11 +283,7 @@ class InstructorDashboardDataView(APIView):
                 except Instructor.DoesNotExist:
                     # If not found as instructor, check if user is HOD
                     if hasattr(request.user, 'role') and request.user.role == 'hod':
-<<<<<<< HEAD
-                        from hods.models import HODRegistrationRequest
-=======
                         from register.models import HODRegistrationRequest
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                         try:
                             hod_request = HODRegistrationRequest.objects.get(
                                 employee_id=request.user.username,
@@ -431,11 +404,7 @@ class HODRecordsView(APIView):
 
     def get(self, request):
         try:
-<<<<<<< HEAD
-            from hods.models import HODRegistrationRequest
-=======
             from register.models import HODRegistrationRequest
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
             
             # Get all approved HOD requests
             hod_requests = HODRegistrationRequest.objects.filter(
@@ -473,8 +442,4 @@ class HODRecordsView(APIView):
             return Response({
                 'success': False,
                 'error': str(e)
-<<<<<<< HEAD
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-=======
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119

@@ -11,7 +11,7 @@ from .serializers import HODRegistrationRequestSerializer, HODSerializer
 from .permissions import IsAdminUser
 from academics.models import Department
 from academics.serializers import DepartmentSerializer
-from instructors.models import HOD
+from hods.models import HOD
 from django.contrib.auth.hashers import make_password
 
 class HODRecordDetailView(APIView):

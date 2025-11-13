@@ -7,7 +7,6 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('academics', '0001_initial'),
-        ('instructors', '0002_delete_hod'),
     ]
 
     operations = [

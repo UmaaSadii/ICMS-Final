@@ -65,13 +65,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         last_name = validated_data.pop('last_name', '')
         full_name = f"{first_name} {last_name}".strip()
         
-<<<<<<< HEAD
-        # If role is HOD, redirect to HOD registration
-        if validated_data.get('role') == 'hod':
-            raise serializers.ValidationError({
-                "role": "HOD registration should be done through the HOD registration endpoint."
-            })
-=======
         # If role is HOD, create registration request instead
         if validated_data.get('role') == 'hod':
             from academics.models import Department
@@ -102,7 +95,6 @@ class RegisterSerializer(serializers.ModelSerializer):
             user.name = full_name
             user._is_hod_request = True
             return user
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
         # Regular user creation
         user = User(
@@ -118,9 +110,6 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
-<<<<<<< HEAD
-
-=======
 class HODRegistrationRequestSerializer(serializers.ModelSerializer):
     department_name = serializers.CharField(source='department.name', read_only=True)
 
@@ -145,7 +134,7 @@ class HODSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Import here to avoid circular imports
-        from instructors.models import HOD
+        from hods.models import HOD
         self.Meta.model = HOD
 
      
@@ -162,5 +151,3 @@ class PrincipalRegistrationRequestSerializer(serializers.ModelSerializer):
             'rejection_reason', 'principal_request_status'
         ]
         read_only_fields = ['id', 'status', 'requested_at', 'reviewed_at', 'principal_request_status']
-   
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119

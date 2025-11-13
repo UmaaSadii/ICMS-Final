@@ -50,7 +50,7 @@ class HODRegistrationRequest(models.Model):
     email = models.EmailField()
     employee_id = models.CharField(max_length=50)
     phone = models.CharField(max_length=20)
-    department = models.ForeignKey('academics.Department', on_delete=models.CASCADE)
+    department = models.ForeignKey('academics.Department', on_delete=models.CASCADE, related_name='hods_registration_requests')
     designation = models.CharField(max_length=100, default='HOD')
     experience_years = models.IntegerField(default=0)
     specialization = models.CharField(max_length=100)
@@ -58,7 +58,7 @@ class HODRegistrationRequest(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     requested_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
-    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='hods_reviewed_requests')
     rejection_reason = models.TextField(blank=True)
     hod_request_status = models.CharField(max_length=20, choices=[
         ('pending_approval', 'Pending Approval'),

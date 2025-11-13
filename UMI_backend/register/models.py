@@ -9,12 +9,8 @@ class User(AbstractUser):
             ("student", "Student"),
             ("instructor", "Instructor"),
             ("admin", "Admin"),
-<<<<<<< HEAD
-            ("hod", "HOD")
-=======
             ("hod", "HOD"),
             ("principal", "Principal")
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         ],
         default="student"
     )
@@ -24,9 +20,6 @@ class User(AbstractUser):
     profile_image = models.ImageField(upload_to='uploads/admin_images/', null=True, blank=True)
 
     def __str__(self):
-<<<<<<< HEAD
-        return self.username
-=======
         return self.username
 
 
@@ -42,7 +35,7 @@ class HODRegistrationRequest(models.Model):
     email = models.EmailField()
     employee_id = models.CharField(max_length=50)
     phone = models.CharField(max_length=20)
-    department = models.ForeignKey('academics.Department', on_delete=models.CASCADE)
+    department = models.ForeignKey('academics.Department', on_delete=models.CASCADE, related_name='register_hod_requests')
     designation = models.CharField(max_length=100, default='HOD')
     experience_years = models.IntegerField(default=0)
     specialization = models.CharField(max_length=100)
@@ -50,7 +43,7 @@ class HODRegistrationRequest(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     requested_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
-    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='register_reviewed_hod_requests')
     rejection_reason = models.TextField(blank=True)
     hod_request_status = models.CharField(max_length=20, choices=[
         ('pending_approval', 'Pending Approval'),
@@ -64,7 +57,6 @@ class HODRegistrationRequest(models.Model):
     
     def __str__(self):
         return f"{self.name} - {self.status}"
-
 
 
 class PrincipalRegistrationRequest(models.Model):
@@ -87,7 +79,7 @@ class PrincipalRegistrationRequest(models.Model):
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     requested_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)
-    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='register_reviewed_principal_requests')
     rejection_reason = models.TextField(blank=True)
     principal_request_status = models.CharField(
         max_length=20,
@@ -105,4 +97,3 @@ class PrincipalRegistrationRequest(models.Model):
 
     def __str__(self):
         return f"{self.name} - {self.status}"
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119

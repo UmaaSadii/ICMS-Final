@@ -29,19 +29,13 @@ urlpatterns = [
 
     path('api/token/', obtain_auth_token),  # Token generate karne ke liye
     path('api/instructors/', include('instructors.urls')),
-<<<<<<< HEAD
     path('api/hods/', include('hods.urls')),
     path('api/monitoring/', include('monitoring.urls')),
     path('api/announcements/', include('announcement.urls')),
     path('api/', include('events.urls')),
     path('api/admin/', include('admin_management.urls')),  # Admin management
     path('api/departments/', include('academics.urls')),  # Use existing departments
-=======
-    path('api/monitoring/', include('monitoring.urls')),
-    path('api/announcements/', include('announcement.urls')),
-    path('api/', include('events.urls')),
-     path('api/', include('feedback.urls')),
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
+    path('api/', include('feedback.urls'))
 ]
 
 # Serve media files during development

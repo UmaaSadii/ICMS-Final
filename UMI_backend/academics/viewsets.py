@@ -15,7 +15,6 @@ class DepartmentViewSet(viewsets.ModelViewSet):
     serializer_class = DepartmentSerializer
     permission_classes = [AllowAnyReadOnly]
 
-<<<<<<< HEAD
     def create(self, request, *args, **kwargs):
         """Override create to handle errors properly"""
         try:
@@ -53,22 +52,6 @@ class DepartmentViewSet(viewsets.ModelViewSet):
                 {'error': f'Failed to create department: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-=======
-    def perform_create(self, serializer):
-        department = serializer.save()
-        # Auto-generate semesters based on num_semesters
-        for i in range(1, department.num_semesters + 1):
-            semester_code = f"{department.code}-SEM{i}"
-            # Check if semester already exists to avoid duplicates
-            if not Semester.objects.filter(semester_code=semester_code).exists():
-                Semester.objects.create(
-                    name=f"Semester {i}",
-                    semester_code=semester_code,
-                    program=department.name,
-                    capacity=30,
-                    department=department
-                )
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
     @action(detail=True, methods=['get'])
     def semesters(self, request, pk=None):

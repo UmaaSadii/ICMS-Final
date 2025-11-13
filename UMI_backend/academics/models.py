@@ -110,19 +110,12 @@ class Attendance(models.Model):
     is_submitted = models.BooleanField(default=False)
     can_edit = models.BooleanField(default=True)
     admin_approved_edit = models.BooleanField(default=False)
-<<<<<<< HEAD
     marked_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
 
     class Meta:
         unique_together = ("student", "timetable", "date")
         ordering = ["-date", "-marked_at"]
-=======
-
-    class Meta:
-        unique_together = ("student", "timetable", "date")
-        ordering = ["-date"]
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
     def __str__(self):
         return f"{self.student.name} - {self.timetable.course.name} - {self.date} ({self.status})"
@@ -168,28 +161,7 @@ class AttendanceEditPermission(models.Model):
     def __str__(self):
         return f"Edit request by {self.instructor.name} for {self.attendance.student.name} - {self.status}"
 
-# ---------- Attendance Edit Permission ----------
-class AttendanceEditPermission(models.Model):
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('approved', 'Approved'),
-        ('rejected', 'Rejected'),
-    ]
-    
-    permission_id = models.AutoField(primary_key=True)
-    instructor = models.ForeignKey("instructors.Instructor", on_delete=models.CASCADE, related_name="edit_requests")
-    attendance = models.ForeignKey(Attendance, on_delete=models.CASCADE, related_name="edit_permissions")
-    reason = models.TextField()
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
-    requested_at = models.DateTimeField(auto_now_add=True)
-    reviewed_at = models.DateTimeField(null=True, blank=True)
-    reviewed_by = models.ForeignKey("register.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="reviewed_permissions")
-    
-    class Meta:
-        ordering = ['-requested_at']
-    
-    def __str__(self):
-        return f"Edit request by {self.instructor.name} - {self.status}"
+
 
 
 # ---------- Result ----------

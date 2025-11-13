@@ -51,18 +51,12 @@ INSTALLED_APPS = [
     'students',
     'academics',
     'instructors',
-<<<<<<< HEAD
     'hods',
     'monitoring',
     'announcement',
     'events',
     'admin_management',
-=======
-    'monitoring',
-    'announcement',
-    'events',
-    'feedback',
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
+    'feedback'
 ]
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [

@@ -11,7 +11,6 @@ from .viewsets import DepartmentViewSet, SemesterViewSet, CourseViewSet
 from .hod_views import HODTimetableView
 from .class_management_views import ClassFormDataView, FilteredDataView
 from .simple_data_view import SimpleDataView
-<<<<<<< HEAD
 from .attendance_views import (
     TimetableBasedAttendanceView,
     MarkTimetableAttendanceView,
@@ -30,8 +29,6 @@ from .admin_attendance_views import (
     AdminAttendanceStatsView
 )
 from .simple_admin_view import SimpleAdminPermissionsView
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 from rest_framework.routers import DefaultRouter
 
 router = DefaultRouter()
@@ -63,7 +60,6 @@ urlpatterns = [
     path("class/form-data/", ClassFormDataView.as_view(), name="class-form-data"),
     path("class/filtered-data/", FilteredDataView.as_view(), name="filtered-data"),
     path("data/", SimpleDataView.as_view(), name="simple-data"),
-<<<<<<< HEAD
     
     # Strict Attendance Management
     path("attendance/timetable/active/", TimetableBasedAttendanceView.as_view(), name="active-slots"),
@@ -76,6 +72,4 @@ urlpatterns = [
     path("admin/attendance/permissions/", SimpleAdminPermissionsView.as_view(), name="admin-permissions"),
     path("admin/attendance/", AdminAttendanceView.as_view(), name="admin-attendance"),
     path("admin/attendance/stats/", AdminAttendanceStatsView.as_view(), name="admin-attendance-stats"),
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 ]

@@ -83,14 +83,10 @@ class StudentViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             student = serializer.save()  # This will auto-generate student_id
             
-<<<<<<< HEAD
             # Handle image upload after student creation
             if 'image' in request.FILES:
                 student.image = request.FILES['image']
                 student.save(update_fields=['image'])
-            
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
             # Create linked User with student_id as username
             user = User.objects.create_user(
                 username=student.student_id,
@@ -104,11 +100,8 @@ class StudentViewSet(viewsets.ModelViewSet):
             student.user = user
             student.save()
 
-<<<<<<< HEAD
             # Refresh from database to get updated image URL
             student.refresh_from_db()
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
             # Return updated student data
             serializer = self.get_serializer(student)
 

@@ -26,9 +26,6 @@ def register(request):
     if serializer.is_valid():
         user = serializer.save()
         
-<<<<<<< HEAD
-
-=======
         # Check if it's a HOD registration request
         if hasattr(user, '_is_hod_request') and user._is_hod_request:
             return Response({
@@ -42,7 +39,6 @@ def register(request):
                     "name": user.name
                 }
             }, status=status.HTTP_201_CREATED)
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         
         # Regular user registration
         token, _ = Token.objects.get_or_create(user=user)
@@ -86,13 +82,9 @@ def login(request):
                         "first_name": instructor.name.split()[0] if instructor.name else '',
                         "last_name": ' '.join(instructor.name.split()[1:]) if instructor.name and len(instructor.name.split()) > 1 else '',
                         "employee_id": instructor.employee_id,
-<<<<<<< HEAD
                         "department": instructor.department.name if instructor.department else None,
                         "is_superuser": user.is_superuser,
-                        "is_staff": user.is_staff,
-=======
-                        "department": instructor.department.name if instructor.department else None
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
+                        "is_staff": user.is_staff
                     },
                     "access_token": token.key,
                     "refresh_token": None
@@ -149,8 +141,6 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
         return [IsAuthenticated()]
 
 
-<<<<<<< HEAD
-=======
 # HOD Registration Request
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -267,18 +257,11 @@ def review_hod_request(request, request_id):
         
     except HODRegistrationRequest.DoesNotExist:
         return Response({'error': 'Request not found'}, status=status.HTTP_404_NOT_FOUND)
-
-
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 # Admin Dashboard Cards
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, IsAdminUser])
 def admin_dashboard_cards(request):
-<<<<<<< HEAD
-    from hods.models import HODRegistrationRequest
-=======
     from .models import HODRegistrationRequest
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
     
     pending_count = HODRegistrationRequest.objects.filter(status='pending').count()
     approved_count = HODRegistrationRequest.objects.filter(status='approved').count()
@@ -291,21 +274,14 @@ def admin_dashboard_cards(request):
             'approved': approved_count,
             'rejected': rejected_count,
             'total': pending_count + approved_count + rejected_count,
-<<<<<<< HEAD
             'endpoint': '/api/hods/admin/requests/',
             'icon': 'user-check',
             'color': 'warning' if pending_count > 0 else 'success'
         }
     })
-=======
-            'endpoint': '/api/register/hod-requests/',
-            'icon': 'user-check',
-            'color': 'warning' if pending_count > 0 else 'success'
-        }
-    })
-# views.py
-from rest_framework import generics, status
 
+
+from django.utils import timezone
 
 class PrincipalRegistrationRequestView(generics.CreateAPIView):
     queryset = PrincipalRegistrationRequest.objects.all()
@@ -357,4 +333,3 @@ class PrincipalApproveRejectView(generics.UpdateAPIView):
             {"message": f"Principal request {status_value} successfully."},
             status=status.HTTP_200_OK
         )
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119

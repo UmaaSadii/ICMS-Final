@@ -4,12 +4,7 @@ from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from .models import Timetable, Course, Department, Semester
 from instructors.models import Instructor
-<<<<<<< HEAD
-from register.models import User
-from hods.models import HODRegistrationRequest
-=======
 from register.models import User, HODRegistrationRequest
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
 class HODTimetableView(APIView):
     """

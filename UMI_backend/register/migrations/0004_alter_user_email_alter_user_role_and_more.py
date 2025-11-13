@@ -8,8 +8,8 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('academics', '0003_remove_payment_fee_and_more'),
-        ('register', '0003_alter_user_role'),
+        ('academics', '0002_alter_attendance_options_attendance_marked_at_and_more'),
+        ('register', '0003_user_profile_image'),
     ]
 
     operations = [

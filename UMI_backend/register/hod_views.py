@@ -9,7 +9,7 @@ from .models import HODRegistrationRequest
 from .serializers import HODRegistrationRequestSerializer
 from .permissions import IsAdminUser
 from django.contrib.auth import get_user_model
-from instructors.models import HOD
+from hods.models import HOD
 
 User = get_user_model()
 

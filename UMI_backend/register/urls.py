@@ -1,31 +1,22 @@
-<<<<<<< HEAD
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    register, login, UserDetailView, UserListView, admin_dashboard_cards
+    register, login, UserDetailView, UserListView,
+    hod_registration_request, get_hod_requests, review_hod_request, admin_dashboard_cards,
+    PrincipalRegistrationRequestView,
+    PrincipalRequestListView,
+    PrincipalApproveRejectView
 )
 from .admin_views import AdminViewSet
-
-router = DefaultRouter()
-router.register(r'admins', AdminViewSet, basename='admin')
-=======
-from django.urls import path
-from .views import (
-    register, login, UserDetailView, UserListView,
-    hod_registration_request, get_hod_requests, review_hod_request, admin_dashboard_cards
-)
 from .hod_views import HODRequestListView, HODRequestActionView
 from .hod_management_views import (
     HODRecordDetailView, HODRecordListView, HODDepartmentListView, HODStatsView, CreateHODFromRequestView
 )
 from .hod_profile_views import HODProfileView
 from .retired_hod_views import RetiredHODView
-from .views import (
-    PrincipalRegistrationRequestView,
-    PrincipalRequestListView,
-    PrincipalApproveRejectView
-)
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
+
+router = DefaultRouter()
+router.register(r'admins', AdminViewSet, basename='admin')
 
 urlpatterns = [
     path('registration/', register, name='register'),       # POST only
@@ -33,13 +24,6 @@ urlpatterns = [
     path('users/', UserListView.as_view(), name='user-list'),      # GET all users
     path('users/<int:pk>/', UserDetailView.as_view(), name='user-detail'),  # GET/PUT/DELETE
     
-<<<<<<< HEAD
-    # Admin Dashboard
-    path('admin/dashboard-cards/', admin_dashboard_cards, name='admin-dashboard-cards'),
-    
-    # Admin Management API
-    path('', include(router.urls)),
-=======
     # HOD Registration
     path('hod-registration/', hod_registration_request, name='hod-registration'),
     path('hod-requests/', get_hod_requests, name='hod-requests'),
@@ -65,10 +49,11 @@ urlpatterns = [
     # Retired HOD Management
     path('admin/retired-hods/', RetiredHODView.as_view(), name='retired-hods'),
 
-
-    # Principal Registration Requests]
-     path('register-principal/', PrincipalRegistrationRequestView.as_view(), name='register-principal'),
+    # Principal Registration Requests
+    path('register-principal/', PrincipalRegistrationRequestView.as_view(), name='register-principal'),
     path('principal-requests/', PrincipalRequestListView.as_view(), name='principal-requests'),
     path('principal-requests/<int:pk>/update/', PrincipalApproveRejectView.as_view(), name='principal-approve-reject'),
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
+    
+    # Admin Management API
+    path('', include(router.urls))
 ]

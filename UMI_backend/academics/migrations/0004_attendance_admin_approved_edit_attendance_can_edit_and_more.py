@@ -8,9 +8,9 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('academics', '0003_remove_payment_fee_and_more'),
+        ('academics', '0002_alter_attendance_options_attendance_marked_at_and_more'),
         ('instructors', '0001_initial'),
-        ('students', '0004_remove_student_id_alter_student_student_id'),
+        ('students', '0002_alter_student_image'),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
