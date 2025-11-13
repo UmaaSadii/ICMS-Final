@@ -12,8 +12,13 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'UMI_backend.settings')
 django.setup()
 
+<<<<<<< HEAD
 from hods.models import HODRegistrationRequest, HOD
 from register.models import User
+=======
+from register.models import HODRegistrationRequest, User
+from instructors.models import HOD
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 from django.utils import timezone
 
 def migrate_approved_hods():

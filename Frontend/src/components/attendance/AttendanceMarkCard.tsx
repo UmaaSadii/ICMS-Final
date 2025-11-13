@@ -26,10 +26,13 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
   const [activeSlot, setActiveSlot] = useState<any>(null);
   const [canSubmit, setCanSubmit] = useState(false);
   const [slotStatus, setSlotStatus] = useState('');
+<<<<<<< HEAD
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedStudentForEdit, setSelectedStudentForEdit] = useState<Student | null>(null);
   const [editReason, setEditReason] = useState('');
   const [newStatus, setNewStatus] = useState<'Present' | 'Absent' | 'Late'>('Present');
+=======
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
   // Dynamic week generation based on current date
   const generateWeekDays = () => {
@@ -41,18 +44,27 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
     monday.setDate(today.getDate() + mondayOffset);
     
     const weekDays = [];
+<<<<<<< HEAD
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     
     for (let i = 0; i < 7; i++) {
       const date = new Date(monday);
       date.setDate(monday.getDate() + (i === 6 ? -1 : i)); // Sunday comes last
       const dayIndex = i === 6 ? 0 : i + 1; // Adjust for Sunday
+=======
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + i);
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       
       const isToday = date.toDateString() === today.toDateString();
       const isPast = date < today && !isToday;
       const isFuture = date > today;
       
       weekDays.push({
+<<<<<<< HEAD
         day: dayNames[dayIndex],
         date: date.getDate().toString(),
         month: date.toLocaleDateString('en-US', { month: 'short' }),
@@ -62,6 +74,17 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
         isPast,
         isFuture,
         isEditable: isToday || (isPast && date >= new Date(today.getTime() - 24 * 60 * 60 * 1000)) // Today or yesterday
+=======
+        day: dayNames[i],
+        date: date.getDate().toString(),
+        month: date.toLocaleDateString('en-US', { month: 'short' }),
+        fullDate: date.toISOString().split('T')[0],
+        key: `${dayNames[i]}-${date.getDate()}`,
+        isToday,
+        isPast,
+        isFuture,
+        isEditable: isToday // Only today is editable
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       });
     }
     
@@ -128,16 +151,50 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
       });
 
       let activeTimetableId: number | null = null;
+<<<<<<< HEAD
       // Always allow submission regardless of slots
       setCanSubmit(true);
       setSlotStatus('Ready - You can submit attendance anytime');
       
       if (slotsResponse.ok) {
         const slotsData = await slotsResponse.json();
+=======
+      if (slotsResponse.ok) {
+        const slotsData = await slotsResponse.json();
+        console.log('Instructor slots:', slotsData);
+
+        // Find active slot for today
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         const currentSlot = slotsData.slots?.find((slot: any) => slot.is_active);
         if (currentSlot) {
           activeTimetableId = currentSlot.timetable_id;
           setActiveSlot(currentSlot);
+<<<<<<< HEAD
+=======
+          
+          // Check if slot is ongoing and can submit
+          const now = new Date();
+          const slotStart = new Date(`${currentSlot.date}T${currentSlot.start_time}`);
+          const slotEnd = new Date(`${currentSlot.date}T${currentSlot.end_time}`);
+          
+          if (now >= slotStart && now <= slotEnd) {
+            setCanSubmit(true);
+            setSlotStatus('Ongoing - You can submit attendance');
+          } else if (now > slotEnd) {
+            setCanSubmit(false);
+            setSlotStatus('Slot ended - Contact admin for updates');
+          } else {
+            setCanSubmit(false);
+            setSlotStatus('Slot not started yet');
+          }
+          
+          console.log('Active slot found:', currentSlot);
+        } else {
+          setActiveSlot(null);
+          setCanSubmit(false);
+          setSlotStatus('No active slot assigned');
+          console.log('No active slot found for today');
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         }
       }
 
@@ -248,6 +305,7 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
     if (students.length === 0) return;
 
     try {
+<<<<<<< HEAD
       const validStudents = students.filter(student => student.id && student.id.trim() !== '');
       
       if (validStudents.length === 0) {
@@ -263,14 +321,34 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
       console.log('Submit attendance data:', attendanceData);
 
       const response = await fetch('http://127.0.0.1:8000/api/instructors/attendance/test-bulk/', {
+=======
+      const timetableId = students[0]?.timetable_id;
+
+      if (!timetableId) {
+        alert('No active slot found');
+        return;
+      }
+
+      const attendanceData = students.map(student => ({
+        student_id: student.id,
+        status: student.status
+      }));
+
+      const response = await fetch('http://localhost:8000/api/academics/attendance/slot/mark/', {
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Token ${JSON.parse(localStorage.getItem('auth') || '{}').access_token}`,
         },
         body: JSON.stringify({
+<<<<<<< HEAD
           date: new Date().toISOString().split('T')[0],
           attendances: attendanceData
+=======
+          timetable_id: timetableId,
+          attendance_data: attendanceData
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         })
       });
 
@@ -291,6 +369,7 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
     if (students.length === 0) return;
 
     try {
+<<<<<<< HEAD
       // First mark attendance - filter out students with blank IDs
       const validStudents = students.filter(student => student.id && student.id.trim() !== '');
       
@@ -307,12 +386,18 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
       console.log('Attendance data:', attendanceData);
 
       const markResponse = await fetch('http://127.0.0.1:8000/api/instructors/attendance/test-bulk/', {
+=======
+      const timetableId = students[0]?.timetable_id;
+
+      const response = await fetch('http://localhost:8000/api/academics/attendance/slot/submit/', {
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Token ${JSON.parse(localStorage.getItem('auth') || '{}').access_token}`,
         },
         body: JSON.stringify({
+<<<<<<< HEAD
           date: new Date().toISOString().split('T')[0],
           attendances: attendanceData
         })
@@ -342,6 +427,18 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
       } else {
         const error = await submitResponse.json();
         alert(`Error finalizing: ${error.error}`);
+=======
+          timetable_id: timetableId
+        })
+      });
+
+      if (response.ok) {
+        alert('Attendance finalized! Admin permission required for further edits.');
+        setStudents([]);
+      } else {
+        const error = await response.json();
+        alert(`Error: ${error.error}`);
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       }
     } catch (error) {
       console.error('Error finalizing attendance:', error);
@@ -418,6 +515,7 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
               >
                 Submit and Lock
               </button>
+<<<<<<< HEAD
               <button
                 onClick={() => setShowEditModal(true)}
                 className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
@@ -425,6 +523,8 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
                 Request Edit
               </button>
 
+=======
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
             </div>
           </div>
         </div>
@@ -465,6 +565,7 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
                     </td>
                     {weekDays.map(day => (
                       <td key={day.key} className="py-4 px-2 text-center">
+<<<<<<< HEAD
                         {day.isEditable ? (
                           <div className="flex items-center justify-center">
                             <select
@@ -483,6 +584,18 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
                             </select>
 
                           </div>
+=======
+                        {day.isToday ? (
+                          <select
+                            value={student.weeklyAttendance[day.key] || 'P'}
+                            onChange={(e) => updateAttendance(student.id, day.key, e.target.value as 'P' | 'A' | 'L')}
+                            className="w-12 h-8 text-xs font-bold border rounded focus:ring-2 focus:border-transparent border-blue-500 bg-blue-50 focus:ring-blue-500"
+                          >
+                            <option value="P">P</option>
+                            <option value="A">A</option>
+                            <option value="L">L</option>
+                          </select>
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                         ) : (
                           <span className={`${getStatusBadge(student.weeklyAttendance[day.key])} ${
                             day.isFuture ? 'opacity-50' : ''
@@ -506,6 +619,7 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
 
         </div>
       </motion.div>
+<<<<<<< HEAD
 
       {/* Professional Edit Request Modal */}
       {showEditModal && (
@@ -686,6 +800,8 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
           </div>
         </div>
       )}
+=======
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
     </div>
   );
 };

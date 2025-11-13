@@ -40,7 +40,11 @@ class IsAdminRoleOrReadOnly(BasePermission):
 
 class AllowAnyReadOnly(BasePermission):
     """
+<<<<<<< HEAD
     Permission class that allows read-only access to anyone and write access to authenticated users.
+=======
+    Permission class that allows read-only access to anyone.
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
     """
     
     def has_permission(self, request, view):
@@ -48,9 +52,17 @@ class AllowAnyReadOnly(BasePermission):
         if request.method in ['GET', 'HEAD', 'OPTIONS']:
             return True
         
+<<<<<<< HEAD
         # For write operations, check authentication
         if not request.user or not request.user.is_authenticated:
             return False
         
         # Allow write operations for authenticated users (including admin and regular users)
+=======
+        # Require authentication for write operations
+        if not request.user or not request.user.is_authenticated:
+            return False
+        
+        # Allow write operations for authenticated users
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         return True

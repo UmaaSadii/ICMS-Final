@@ -5,6 +5,7 @@ class InstructorSerializer(serializers.ModelSerializer):
     user_email = serializers.EmailField(source='user.email', read_only=True)
     department_name = serializers.CharField(source='department.name', read_only=True)
     department_id = serializers.IntegerField(write_only=True, required=False)
+<<<<<<< HEAD
     image = serializers.SerializerMethodField()
     
     def get_image(self, obj):
@@ -14,6 +15,8 @@ class InstructorSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.image.url)
             return obj.image.url
         return None
+=======
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
     class Meta:
         model = Instructor

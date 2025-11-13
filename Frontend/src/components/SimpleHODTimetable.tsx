@@ -10,6 +10,10 @@ const SimpleHODTimetable: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newClass, setNewClass] = useState({
+<<<<<<< HEAD
+=======
+    semester_id: '',
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
     course_id: '',
     instructor_id: '',
     day: '',
@@ -59,10 +63,16 @@ const SimpleHODTimetable: React.FC = () => {
     fetchTimetable(semesterId);
   };
 
+<<<<<<< HEAD
   
   const getFilteredCourses = () => {
     if (!selectedSemester) return courses;
     return courses.filter(course => course.semester_id === parseInt(selectedSemester));
+=======
+  const getFilteredCourses = () => {
+    if (!newClass.semester_id) return [];
+    return courses.filter(course => course.semester_id === parseInt(newClass.semester_id));
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
   };
 
   const handleAddClass = async (e: React.FormEvent) => {
@@ -73,7 +83,11 @@ const SimpleHODTimetable: React.FC = () => {
         headers: { Authorization: `Token ${token}` }
       });
       setShowAddForm(false);
+<<<<<<< HEAD
       setNewClass({ course_id: '', instructor_id: '', day: '', start_time: '', end_time: '', room: '' });
+=======
+      setNewClass({ semester_id: '', course_id: '', instructor_id: '', day: '', start_time: '', end_time: '', room: '' });
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       fetchTimetable(selectedSemester);
     } catch (error) {
       console.error('Error adding class:', error);
@@ -120,6 +134,25 @@ const SimpleHODTimetable: React.FC = () => {
           <h3 className="text-lg font-semibold mb-4">Add New Class</h3>
           <form onSubmit={handleAddClass} className="grid grid-cols-2 gap-4">
             <div>
+<<<<<<< HEAD
+=======
+              <label className="block text-sm font-medium text-gray-700 mb-1">Semester:</label>
+              <select
+                value={newClass.semester_id}
+                onChange={(e) => setNewClass({...newClass, semester_id: e.target.value, course_id: ''})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Select Semester</option>
+                {semesters.map(sem => (
+                  <option key={sem.semester_id} value={sem.semester_id}>
+                    {sem.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
               <label className="block text-sm font-medium text-gray-700 mb-1">Course:</label>
               <select
                 value={newClass.course_id}

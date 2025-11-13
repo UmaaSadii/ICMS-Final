@@ -10,8 +10,12 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'UMI_backend.settings')
 django.setup()
 
+<<<<<<< HEAD
 from hods.models import HODRegistrationRequest
 from register.models import User
+=======
+from register.models import HODRegistrationRequest, User
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 from academics.models import Department
 
 def create_sample_hods():

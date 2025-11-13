@@ -14,6 +14,7 @@ User = get_user_model()
 def instructor_timetable(request):
     """Get timetable slots assigned to the logged-in instructor"""
     try:
+<<<<<<< HEAD
         # Get instructor
         instructor = Instructor.objects.get(user=request.user)
         
@@ -38,10 +39,65 @@ def instructor_timetable(request):
                 }
             })
         
+=======
+        print(f"Instructor timetable request from user: {request.user}")
+        
+        # Get instructor profile for logged-in user
+        instructor = Instructor.objects.get(user=request.user)
+        print(f"Found instructor: {instructor.name} (ID: {instructor.id}, Employee ID: {instructor.employee_id})")
+        
+        # Debug: Check if this is instructor 0874089
+        if instructor.employee_id == '0874089':
+            print("*** This is instructor 0874089 - checking timetable assignments ***")
+            all_timetables = Timetable.objects.filter(instructor__employee_id='0874089')
+            print(f"Direct query by employee_id found {all_timetables.count()} entries")
+            for tt in all_timetables:
+                print(f"  - {tt.day} {tt.start_time}-{tt.end_time}: {tt.course.name}")
+        
+        # Get timetable entries for this instructor
+        timetables = Timetable.objects.filter(instructor=instructor).select_related(
+            'course', 'semester', 'instructor'
+        )
+        print(f"Found {timetables.count()} timetable entries for instructor {instructor.name}")
+        
+        # Debug: Also try filtering by instructor ID directly
+        timetables_by_id = Timetable.objects.filter(instructor_id=instructor.id)
+        print(f"Alternative query by instructor_id={instructor.id} found {timetables_by_id.count()} entries")
+        
+        # Debug: Show all timetable entries for debugging
+        if timetables.count() == 0:
+            print("No timetables found - checking all timetable entries:")
+            all_entries = Timetable.objects.all()[:5]  # Show first 5
+            for entry in all_entries:
+                print(f"  Entry: instructor_id={entry.instructor_id}, instructor_name={entry.instructor.name if entry.instructor else 'None'}")
+        
+        timetable_data = []
+        for entry in timetables:
+            print(f"Processing timetable entry: {entry.day} {entry.start_time} - {entry.course.name}")
+            timetable_data.append({
+                'id': entry.id,
+                'day': entry.day,
+                'start_time': entry.start_time.strftime('%H:%M'),
+                'end_time': entry.end_time.strftime('%H:%M'),
+                'room': entry.room,
+                'course': {
+                    'name': entry.course.name,
+                    'course_code': entry.course.course_code
+                },
+                'semester': {
+                    'name': entry.semester.name,
+                    'semester_number': entry.semester.semester_number
+                }
+            })
+        
+        print(f"Returning {len(timetable_data)} timetable entries")
+        
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         return Response({
             'timetables': timetable_data,
             'instructor': {
                 'name': instructor.name,
+<<<<<<< HEAD
                 'employee_id': instructor.employee_id
             }
         })
@@ -50,10 +106,24 @@ def instructor_timetable(request):
         return Response({'error': 'Instructor profile not found'}, status=404)
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+=======
+                'employee_id': instructor.employee_id,
+                'department': instructor.department.name if instructor.department else None
+            }
+        }, status=status.HTTP_200_OK)
+        
+    except Instructor.DoesNotExist:
+        print(f"Instructor profile not found for user: {request.user}")
+        return Response({'error': 'Instructor profile not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        print(f"Error in instructor_timetable: {str(e)}")
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+<<<<<<< HEAD
 def current_user_info(request):
     """Show current user info"""
     user = request.user
@@ -72,6 +142,8 @@ def current_user_info(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
+=======
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 def debug_instructor_mapping(request):
     """Debug endpoint to check instructor-user mapping"""
     try:

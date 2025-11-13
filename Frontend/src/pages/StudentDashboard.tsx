@@ -3,6 +3,7 @@ import axios from "axios";
 import { announcementService } from "../api/apiService";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import FeedbackPopup from "../components/FeedbackPopup";
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -57,6 +58,10 @@ const StudentDashboard: React.FC = () => {
   const [showProfile, setShowProfile] = useState(false);
   const [aiFeedback, setAiFeedback] = useState("");
   const [analyticsData, setAnalyticsData] = useState<any>(null);
+<<<<<<< HEAD
+=======
+  const [openFeedback, setOpenFeedback] = useState<boolean>(false);
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
   const [attendanceData, setAttendanceData] = useState<any[]>([]);
   const navigate = useNavigate();
 
@@ -154,7 +159,10 @@ const handleLogout = () => {
     { name: "Results", icon: <GraduationCap size={18} /> },
     { name: "Attendance", icon: <CalendarDays size={18} /> },
     { name: "Timetable", icon: <CalendarDays size={18} /> },
+<<<<<<< HEAD
 
+=======
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
     { name: "Events", icon: <Megaphone size={18} /> },
     { name: "Announcements", icon: <Bell size={18} /> },
   ];
@@ -247,6 +255,21 @@ const handleLogout = () => {
             {darkMode ? <Sun size={20} /> : <Moon size={20} />}
           </button>
         </header>
+      {/* Feedback Button (Top Right corner under header) */}
+<div className="flex justify-end px-6 mt-4">
+  <button
+    onClick={() => setOpenFeedback(true)}
+    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow-md transition"
+  >
+    Give Feedback
+  </button>
+</div>
+
+<FeedbackPopup isOpen={openFeedback} onClose={() => setOpenFeedback(false)} />
+  
+
+      
+          
 
         {/* Content */}
         <div className="p-6 overflow-y-auto">
@@ -290,6 +313,43 @@ const handleLogout = () => {
                     },
                   }}
                 />
+              </div>
+              
+
+              {/* Attendance Overview */}
+              <div
+                className={`rounded-2xl shadow-md p-6 ${
+                  darkMode ? "bg-gray-800" : "bg-white"
+                }`}
+              >
+                <h3 className="text-lg font-semibold mb-4 text-blue-600">
+                  Attendance Overview
+                </h3>
+                {attendanceData.length > 0 ? (
+                  <div className="space-y-3">
+                    {attendanceData.map((course: any, index: number) => (
+                      <div key={index} className="flex justify-between items-center">
+                        <span className="text-sm font-medium">{course.course}</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xs text-gray-500">
+                            {course.present_classes}/{course.total_classes}
+                          </span>
+                          <div className="w-16 bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-blue-600 h-2 rounded-full" 
+                              style={{ width: `${course.attendance_percentage}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs font-semibold">
+                            {course.attendance_percentage}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500">No attendance data available</p>
+                )}
               </div>
 
               {/* Attendance Overview */}

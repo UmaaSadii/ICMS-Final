@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import User
+from .models import User, HODRegistrationRequest,PrincipalRegistrationRequest
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -65,11 +65,44 @@ class RegisterSerializer(serializers.ModelSerializer):
         last_name = validated_data.pop('last_name', '')
         full_name = f"{first_name} {last_name}".strip()
         
+<<<<<<< HEAD
         # If role is HOD, redirect to HOD registration
         if validated_data.get('role') == 'hod':
             raise serializers.ValidationError({
                 "role": "HOD registration should be done through the HOD registration endpoint."
             })
+=======
+        # If role is HOD, create registration request instead
+        if validated_data.get('role') == 'hod':
+            from academics.models import Department
+            
+            try:
+                department = Department.objects.get(department_id=department_id)
+            except Department.DoesNotExist:
+                raise serializers.ValidationError({"department_id": "Invalid department."})
+            
+            hod_request = HODRegistrationRequest.objects.create(
+                name=full_name or validated_data.get('name', ''),
+                email=validated_data.get('email'),
+                employee_id=employee_id,
+                phone=phone,
+                department=department,
+                designation=designation or 'HOD',
+                experience_years=experience_years or 0,
+                specialization=specialization,
+                password=validated_data['password']
+            )
+            
+            # Return a mock user object with request info
+            user = User()
+            user.id = hod_request.id
+            user.username = validated_data['username']
+            user.email = validated_data.get('email')
+            user.role = 'hod'
+            user.name = full_name
+            user._is_hod_request = True
+            return user
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
         # Regular user creation
         user = User(
@@ -85,4 +118,49 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 
+<<<<<<< HEAD
 
+=======
+class HODRegistrationRequestSerializer(serializers.ModelSerializer):
+    department_name = serializers.CharField(source='department.name', read_only=True)
+
+    class Meta:
+        model = HODRegistrationRequest
+        fields = ['id', 'name', 'email', 'employee_id', 'phone', 'department',
+                 'department_name', 'designation', 'experience_years', 'specialization',
+                 'status', 'requested_at', 'reviewed_at', 'rejection_reason', 'hod_request_status']
+        read_only_fields = ['id', 'status', 'requested_at', 'reviewed_at', 'hod_request_status']
+
+
+class HODSerializer(serializers.ModelSerializer):
+    department_name = serializers.CharField(source='department.name', read_only=True)
+    
+    class Meta:
+        model = None  # Will be set dynamically
+        fields = ['id', 'name', 'email', 'phone', 'department', 'department_name',
+                 'designation', 'specialization', 'experience_years', 'hire_date',
+                 'image', 'is_active', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Import here to avoid circular imports
+        from instructors.models import HOD
+        self.Meta.model = HOD
+
+     
+class PrincipalRegistrationRequestSerializer(serializers.ModelSerializer):
+    department_name = serializers.CharField(source='department.name', read_only=True)
+
+    class Meta:
+        model = PrincipalRegistrationRequest
+        fields = [
+            'id', 'name', 'email', 'employee_id', 'phone',
+            'department', 'department_name', 'designation',
+            'experience_years', 'specialization',
+            'status', 'requested_at', 'reviewed_at',
+            'rejection_reason', 'principal_request_status'
+        ]
+        read_only_fields = ['id', 'status', 'requested_at', 'reviewed_at', 'principal_request_status']
+   
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119

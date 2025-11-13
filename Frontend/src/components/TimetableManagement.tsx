@@ -1,6 +1,12 @@
+<<<<<<< HEAD
  
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+=======
+
+import React, { useState, useEffect } from 'react';
+import { api } from '../api/api';
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
 const TimetableManagement: React.FC = () => {
   const [selectedSemester, setSelectedSemester] = useState('');
@@ -37,6 +43,7 @@ const TimetableManagement: React.FC = () => {
 
   const fetchDashboardData = async () => {
     try {
+<<<<<<< HEAD
       const storedAuth = sessionStorage.getItem('auth') || localStorage.getItem('auth');
       if (!storedAuth) {
         throw new Error('No authentication data found');
@@ -47,6 +54,9 @@ const TimetableManagement: React.FC = () => {
       const response = await axios.get('http://127.0.0.1:8000/api/hods/timetable/?action=form_data', {
         headers: { Authorization: `Token ${token}` }
       });
+=======
+      const response = await api.get('academics/hod/timetable/?action=form_data');
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
       console.log('Dashboard data:', response.data);
 
@@ -60,9 +70,15 @@ const TimetableManagement: React.FC = () => {
       // Load timetable data
       await fetchTimetable();
 
+<<<<<<< HEAD
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       // Don't set fallback data - let it show empty lists so real data is used
+=======
+    } catch (error: any) {
+      console.error('Error fetching dashboard data:', error);
+      alert(error.message || 'Failed to load dashboard data. Please try again.');
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       setSemesters([]);
       setAvailableCourses([]);
       setAvailableInstructors([]);
@@ -71,6 +87,7 @@ const TimetableManagement: React.FC = () => {
 
   const fetchTimetable = async () => {
     try {
+<<<<<<< HEAD
       const storedAuth = sessionStorage.getItem('auth') || localStorage.getItem('auth');
       if (!storedAuth) {
         throw new Error('No authentication data found');
@@ -85,6 +102,13 @@ const TimetableManagement: React.FC = () => {
       const response = await axios.get(url, {
         headers: { Authorization: `Token ${token}` }
       });
+=======
+      const url = selectedSemester
+        ? `academics/hod/timetable/?semester_id=${selectedSemester}`
+        : 'academics/hod/timetable/';
+
+      const response = await api.get(url);
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
       console.log('Timetable data:', response.data);
 
@@ -96,15 +120,24 @@ const TimetableManagement: React.FC = () => {
           subject: entry.course.name,
           instructor: entry.instructor.name,
           room: entry.room,
+<<<<<<< HEAD
           semester: entry.course.semester || entry.semester?.name,
+=======
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
           time: `${entry.start_time}-${entry.end_time}`,
           id: entry.id
         };
       });
       setTimetableData(formattedData);
 
+<<<<<<< HEAD
     } catch (error) {
       console.error('Error fetching timetable:', error);
+=======
+    } catch (error: any) {
+      console.error('Error fetching timetable:', error);
+      alert(error.message || 'Failed to load timetable. Please try again.');
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
     }
   };
 
@@ -118,6 +151,7 @@ const TimetableManagement: React.FC = () => {
     const key = `${day}-${time}`;
     const classData = timetableData[key];
 
+<<<<<<< HEAD
     if (classData?.id && window.confirm('Delete this class?')) {
       try {
         const storedAuth = sessionStorage.getItem('auth') || localStorage.getItem('auth');
@@ -135,12 +169,25 @@ const TimetableManagement: React.FC = () => {
         await fetchTimetable();
       } catch (error) {
         console.error('Error deleting class:', error);
+=======
+    if (classData?.id && window.confirm('Are you sure you want to delete this class?')) {
+      try {
+        await api.delete(`academics/hod/timetable/${classData.id}/`);
+
+        const newData = { ...timetableData };
+        delete newData[key];
+        setTimetableData(newData);
+      } catch (error: any) {
+        console.error('Error deleting class:', error);
+        alert(error.message || 'Failed to delete class. Please try again.');
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       }
     }
   };
 
   const handleAddClass = async () => {
     try {
+<<<<<<< HEAD
       const storedAuth = sessionStorage.getItem('auth') || localStorage.getItem('auth');
       if (!storedAuth) {
         throw new Error('No authentication data found');
@@ -155,6 +202,26 @@ const TimetableManagement: React.FC = () => {
       // Refresh timetable data after successful addition
       await fetchTimetable();
       
+=======
+      const response = await api.post('academics/hod/timetable/', newClass);
+
+      if (response.data.timetable) {
+        const entry = response.data.timetable;
+        const dayCapitalized = entry.day.charAt(0).toUpperCase() + entry.day.slice(1);
+        const key = `${dayCapitalized}-${entry.start_time}`;
+        setTimetableData((prev: any) => ({
+          ...prev,
+          [key]: {
+            subject: entry.course.name,
+            instructor: entry.instructor.name,
+            room: entry.room,
+            time: `${entry.start_time}-${entry.end_time}`,
+            id: entry.id
+          }
+        }));
+      }
+
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       setShowAddModal(false);
       setNewClass({
         semester_id: '',
@@ -167,6 +234,7 @@ const TimetableManagement: React.FC = () => {
       });
     } catch (error: any) {
       console.error('Error adding class:', error);
+<<<<<<< HEAD
       const errorMessage = error.response?.data?.error || 'Error adding class';
       
       if (error.response?.data?.conflict_details) {
@@ -179,11 +247,19 @@ const TimetableManagement: React.FC = () => {
   };
 
   // Handle course selection - only set semester if not already selected
+=======
+      alert(error.message || 'Failed to add class. Please check your input and try again.');
+    }
+  };
+
+  // Handle course selection and auto-set semester
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
   const handleCourseChange = (courseId: string) => {
     const selectedCourse = availableCourses.find((course: any) => course.course_id === courseId);
     setNewClass({
       ...newClass,
       course_id: courseId,
+<<<<<<< HEAD
       // Only set semester if it's empty, otherwise keep current selection
       semester_id: newClass.semester_id || (selectedCourse ? selectedCourse.semester_id.toString() : '')
     });
@@ -195,6 +271,9 @@ const TimetableManagement: React.FC = () => {
       ...newClass,
       semester_id: semesterId,
       course_id: '' // Reset course when semester changes
+=======
+      semester_id: selectedCourse ? selectedCourse.semester_id : ''
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
     });
   };
 
@@ -204,6 +283,7 @@ const TimetableManagement: React.FC = () => {
       <div className="p-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
+<<<<<<< HEAD
             <div>
               <h2 className="text-2xl font-bold text-gray-800">Timetable Management</h2>
               {selectedSemester && (
@@ -212,13 +292,20 @@ const TimetableManagement: React.FC = () => {
                 </p>
               )}
             </div>
+=======
+            <div></div>
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
             <div className="flex items-center space-x-4">
               <select
                 value={selectedSemester}
                 onChange={(e) => setSelectedSemester(e.target.value)}
                 className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
+<<<<<<< HEAD
                 <option value="">All Semesters</option>
+=======
+                <option value="">Select Semester</option>
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                 {semesters.map(sem => (
                   <option key={sem.semester_id} value={sem.semester_id}>
                     {sem.name}
@@ -286,9 +373,12 @@ const TimetableManagement: React.FC = () => {
                             <div className="text-sm font-bold mb-2 text-center">{classData.subject}</div>
                             <div className="text-xs opacity-95 mb-1">Instructor: {classData.instructor}</div>
                             <div className="text-xs opacity-95 mb-1">Room: {classData.room}</div>
+<<<<<<< HEAD
                             {classData.semester && (
                               <div className="text-xs opacity-95 mb-1">Semester: {classData.semester}</div>
                             )}
+=======
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                             <div className="text-xs opacity-90 mt-2 text-center bg-white bg-opacity-30 rounded py-1">{classData.time}</div>
                           </div>
                         ) : (
@@ -322,7 +412,11 @@ const TimetableManagement: React.FC = () => {
                         <label className="block text-sm font-medium mb-1">Semester</label>
                         <select
                           value={newClass.semester_id}
+<<<<<<< HEAD
                           onChange={(e) => handleSemesterChange(e.target.value)}
+=======
+                          onChange={(e) => setNewClass({...newClass, semester_id: e.target.value, course_id: ''})}
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="">Select Semester</option>
@@ -342,7 +436,11 @@ const TimetableManagement: React.FC = () => {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="">Select Course</option>
+<<<<<<< HEAD
                           {availableCourses.filter(course => !newClass.semester_id || course.semester_id.toString() === newClass.semester_id).map((course: any) => (
+=======
+                          {availableCourses.filter(course => !newClass.semester_id || course.semester_id === parseInt(newClass.semester_id)).map((course: any) => (
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                             <option key={course.course_id} value={course.course_id}>
                               {course.name} ({course.code})
                             </option>

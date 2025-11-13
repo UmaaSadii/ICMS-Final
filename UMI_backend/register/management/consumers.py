@@ -1,8 +1,13 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+<<<<<<< HEAD
 from hods.models import HODRegistrationRequest
 from hods.serializers import HODRegistrationRequestSerializer
+=======
+from .models import HODRegistrationRequest
+from .serializers import HODRegistrationRequestSerializer
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
 class HODRequestConsumer(AsyncWebsocketConsumer):
     async def connect(self):

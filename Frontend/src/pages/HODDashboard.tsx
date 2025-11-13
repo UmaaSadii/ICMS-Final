@@ -3,8 +3,17 @@ import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import { instructorService } from '../api/studentInstructorService';
 import TimetableManagement from '../components/TimetableManagement';
+<<<<<<< HEAD
 
 type TabId = 'dashboard' | 'instructors' | 'attendance' | 'timetable' | 'my-attendance';
+=======
+import InstructorProfile from '../components/InstructorProfile';
+import HODProfile from '../components/HODProfile';
+import HODFeedbackModal from "../components/HODFeedbackModal";
+
+
+type TabId = 'dashboard' | 'instructors' | 'attendance' | 'timetable' | 'my-attendance' | 'profile';
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
 const HODDashboard = () => {
   const { currentUser, logout } = useAuth();
@@ -14,6 +23,11 @@ const HODDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [hodProfile, setHodProfile] = useState<any>(null);
+<<<<<<< HEAD
+=======
+  const [openFeedbackModal, setOpenFeedbackModal] = useState(false);
+
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
   // Load real data
   useEffect(() => {
@@ -36,6 +50,7 @@ const HODDashboard = () => {
 
   const loadHODProfile = async () => {
     try {
+<<<<<<< HEAD
       const token = JSON.parse(sessionStorage.getItem("auth") || localStorage.getItem("auth") || "{}")?.access_token;
       if (token) {
         const response = await fetch('http://127.0.0.1:8000/api/hods/profile/', {
@@ -47,6 +62,24 @@ const HODDashboard = () => {
           setHodProfile(data);
         } else {
           console.error('Failed to fetch HOD profile:', response.status);
+=======
+      // Get HOD profile using current user info
+      const token = localStorage.getItem('token');
+      if (token) {
+        const profileResponse = await fetch('http://localhost:8000/api/instructors/profile/', {
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          console.log('HOD profile data:', profileData);
+          setHodProfile(profileData);
+        } else {
+          console.error('Profile fetch failed:', profileResponse.status, profileResponse.statusText);
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         }
       }
     } catch (error) {
@@ -56,8 +89,13 @@ const HODDashboard = () => {
 
   const markInstructorAttendance = async (instructorId: number, status: string) => {
     try {
+<<<<<<< HEAD
       const token = JSON.parse(sessionStorage.getItem("auth") || localStorage.getItem("auth") || "{}")?.access_token || sessionStorage.getItem('token') || localStorage.getItem('token');
       await fetch('http://127.0.0.1:8000/api/academics/hod/attendance/', {
+=======
+      const token = localStorage.getItem('token');
+      await fetch('http://localhost:8000/api/academics/hod/attendance/', {
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
@@ -79,6 +117,11 @@ const HODDashboard = () => {
     { id: 'timetable', label: 'Timetable', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' }
   ];
 
+<<<<<<< HEAD
+=======
+  const profileTab = { id: 'profile', label: 'My Profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' };
+
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
   const renderSidebar = () => (
     <div className="w-64 bg-gradient-to-b from-purple-800 to-indigo-900 text-white p-4 space-y-2 min-h-screen shadow-xl">
       <div className="mb-8 text-center">
@@ -114,6 +157,22 @@ const HODDashboard = () => {
               </button>
             </li>
           ))}
+<<<<<<< HEAD
+=======
+          <li>
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`w-full flex items-center px-4 py-2 rounded-lg transition-colors ${
+                activeTab === 'profile' ? 'bg-purple-700 text-white' : 'text-purple-100 hover:bg-purple-700'
+              }`}
+            >
+              <svg className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={profileTab.icon} />
+              </svg>
+              <span>{profileTab.label}</span>
+            </button>
+          </li>
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         </ul>
         <div className="mt-8">
           <button
@@ -225,8 +284,13 @@ const HODDashboard = () => {
   const deleteInstructor = async (instructorId: number, instructorName: string) => {
     if (window.confirm(`Are you sure you want to delete ${instructorName}? This action cannot be undone.`)) {
       try {
+<<<<<<< HEAD
         const token = JSON.parse(sessionStorage.getItem("auth") || localStorage.getItem("auth") || "{}")?.access_token || sessionStorage.getItem('token') || localStorage.getItem('token');
         const response = await fetch(`http://127.0.0.1:8000/api/instructors/${instructorId}/`, {
+=======
+        const token = localStorage.getItem('token');
+        const response = await fetch(`http://localhost:8000/api/instructors/${instructorId}/`, {
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
           method: 'DELETE',
           headers: {
             'Authorization': `Token ${token}`,
@@ -344,6 +408,18 @@ const HODDashboard = () => {
             <p className="text-gray-600">Your attendance record will be displayed here...</p>
           </motion.div>
         );
+<<<<<<< HEAD
+=======
+      case 'profile':
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <HODProfile />
+          </motion.div>
+        );
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       default:
         return renderDashboard();
     }
@@ -357,6 +433,7 @@ const HODDashboard = () => {
         <header className="bg-gradient-to-r from-purple-600 to-indigo-600 shadow-lg border-b border-purple-300 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
+<<<<<<< HEAD
               {/* Profile Picture */}
               <button
                 onClick={() => setShowProfileModal(true)}
@@ -366,6 +443,32 @@ const HODDashboard = () => {
                 {hodProfile?.image ? (
                   <img
                     src={hodProfile.image}
+=======
+              <button
+             onClick={() => setOpenFeedbackModal(true)}
+            className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md shadow-md"
+             >
+             View Feedbacks
+             </button>
+             <HODFeedbackModal
+  isOpen={openFeedbackModal}
+  onClose={() => setOpenFeedbackModal(false)}
+/>
+
+
+              {/* Profile Picture */}
+              <button
+                onClick={() => {
+                  console.log('Profile clicked - opening editable profile modal');
+                  setShowProfileModal(true);
+                }}
+                className="relative group cursor-pointer hover:scale-105 transition-transform duration-200"
+                title="Edit Profile"
+              >
+                {hodProfile?.image ? (
+                  <img
+                    src={hodProfile.image.startsWith('http') ? hodProfile.image : `http://localhost:8000${hodProfile.image}`}
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                     alt="Profile"
                     className="h-12 w-12 rounded-full border-2 border-white shadow-lg hover:border-purple-200 transition-colors duration-200 object-cover"
                     onError={(e) => {
@@ -446,6 +549,7 @@ const HODDashboard = () => {
               </button>
             </div>
             <div className="p-6">
+<<<<<<< HEAD
               {hodProfile ? (
                 <div className="space-y-6">
                   {/* Main Profile Card */}
@@ -570,6 +674,9 @@ const HODDashboard = () => {
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
                 </div>
               )}
+=======
+              <HODProfile />
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
             </div>
           </motion.div>
         </div>

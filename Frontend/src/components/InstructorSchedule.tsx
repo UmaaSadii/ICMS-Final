@@ -20,6 +20,7 @@ const InstructorSchedule: React.FC = () => {
 
   const fetchSchedule = async () => {
     try {
+<<<<<<< HEAD
       // Try multiple token storage formats (prioritize sessionStorage)
       let token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken') || localStorage.getItem('token');
       
@@ -54,24 +55,49 @@ const InstructorSchedule: React.FC = () => {
         }
       } catch (userError: any) {
         console.error('User info error:', userError.response?.data);
+=======
+      const storedAuth = localStorage.getItem('auth');
+      if (!storedAuth) return;
+      
+      const authData = JSON.parse(storedAuth);
+      const token = authData.access_token;
+
+      console.log('Fetching instructor timetable with token:', token);
+      
+      // Debug: Check instructor mapping first
+      try {
+        const debugResponse = await axios.get('http://localhost:8000/api/instructors/debug-mapping/', {
+          headers: { Authorization: `Token ${token}` }
+        });
+        console.log('Debug mapping response:', debugResponse.data);
+      } catch (debugError: any) {
+        console.error('Debug mapping error:', debugError.response?.data);
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       }
       
       const response = await axios.get('http://localhost:8000/api/instructors/timetable/', {
         headers: { Authorization: `Token ${token}` }
       });
       
+<<<<<<< HEAD
       console.log('Instructor timetable response status:', response.status);
       console.log('Instructor timetable response data:', response.data);
+=======
+      console.log('Instructor timetable response:', response.data);
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
       const data = response.data.timetables || [];
       console.log('Instructor timetables received:', data);
       
+<<<<<<< HEAD
       // Set instructor name from timetable response if not already set
       if (response.data.instructor && response.data.instructor.name) {
         console.log('Setting instructor name from timetable response:', response.data.instructor.name);
         // You can use this to update instructor profile if needed
       }
       
+=======
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       // Show instructor info from response
       if (response.data.instructor) {
         console.log('Logged in as instructor:', response.data.instructor);
@@ -113,7 +139,11 @@ const InstructorSchedule: React.FC = () => {
         
         formattedData[key] = {
           subject: entry.course.name,
+<<<<<<< HEAD
           courseCode: entry.course.code,
+=======
+          courseCode: entry.course.course_code,
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
           room: entry.room,
           time: `${startTime}-${endTime}`,
           semester: entry.semester.name,
@@ -151,6 +181,7 @@ const InstructorSchedule: React.FC = () => {
   };
 
   const getTodaySchedule = () => {
+<<<<<<< HEAD
     console.log('Today is:', today);
     console.log('Schedule data:', scheduleData);
     const filtered = scheduleData.filter(item => {
@@ -159,6 +190,11 @@ const InstructorSchedule: React.FC = () => {
     });
     console.log('Filtered today classes:', filtered);
     return filtered.sort((a, b) => a.start_time.localeCompare(b.start_time));
+=======
+    return scheduleData.filter(item => 
+      item.day.toLowerCase() === today.toLowerCase()
+    ).sort((a, b) => a.start_time.localeCompare(b.start_time));
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
   };
 
   if (loading) {
@@ -171,7 +207,11 @@ const InstructorSchedule: React.FC = () => {
 
   // Debug: Show current user info
   const debugCurrentUser = () => {
+<<<<<<< HEAD
     const auth = sessionStorage.getItem('auth') || localStorage.getItem('auth');
+=======
+    const auth = localStorage.getItem('auth');
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
     if (auth) {
       const authData = JSON.parse(auth);
       console.log('Current user token info:', authData);
@@ -211,7 +251,11 @@ const InstructorSchedule: React.FC = () => {
                   <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
                   <div>
                     <h3 className="font-semibold">{classItem.course.name}</h3>
+<<<<<<< HEAD
                     <p className="text-sm opacity-90">{classItem.course.code}</p>
+=======
+                    <p className="text-sm opacity-90">{classItem.course.course_code}</p>
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                     <p className="text-xs opacity-75">Room: {classItem.room}</p>
                   </div>
                 </div>
@@ -381,7 +425,11 @@ const InstructorSchedule: React.FC = () => {
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     <div>
                       <h4 className="font-medium text-gray-900">{classItem.course.name}</h4>
+<<<<<<< HEAD
                       <p className="text-sm text-gray-600">{classItem.course.code} • Room {classItem.room}</p>
+=======
+                      <p className="text-sm text-gray-600">{classItem.course.course_code} • Room {classItem.room}</p>
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                     </div>
                   </div>
                   <div className="text-right">
@@ -416,7 +464,11 @@ const InstructorSchedule: React.FC = () => {
         <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-6 rounded-xl text-white shadow-lg">
           <h3 className="text-sm font-medium opacity-90">Unique Courses</h3>
           <p className="text-3xl font-bold">
+<<<<<<< HEAD
             {new Set(scheduleData.map(item => item.course.code)).size}
+=======
+            {new Set(scheduleData.map(item => item.course.course_code)).size}
+>>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
           </p>
         </div>
       </motion.div>
