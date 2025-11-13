@@ -21,36 +21,24 @@ class InstructorViewSet(viewsets.ModelViewSet):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def create(self, request, *args, **kwargs):
-        print(f"InstructorViewSet create - Request data: {request.data}")
-        print(f"Request content type: {request.content_type}")
         try:
             data_for_validation = request.data.copy()
             from register.models import User
             from rest_framework import serializers
+            
             user_email = data_for_validation.pop('user_email', None)
-            password = data_for_validation.pop('password', None)
-
             if not user_email:
                 raise serializers.ValidationError("user_email is required")
-            if not password:
-                raise serializers.ValidationError("password is required for new instructors")
-
+            
+            # Check if employee_id already exists
+            employee_id = data_for_validation.get('employee_id')
+            if employee_id and Instructor.objects.filter(employee_id=employee_id).exists():
+                raise serializers.ValidationError("Employee ID already exists")
+            
             user, created = User.objects.get_or_create(
-                email=user_email,
-                defaults={
-                    'username': data_for_validation.get('employee_id', user_email),  # Use employee_id as username if provided
-                    'role': 'instructor'
-                }
+                email=user_email, 
+                defaults={'username': user_email, 'role': 'instructor'}
             )
-
-            # If user was created, set the password
-            if created:
-                user.set_password(password)
-                user.save()
-            else:
-                # If user already exists, check if they have an instructor profile
-                if hasattr(user, 'instructor_profile'):
-                    raise serializers.ValidationError("User already has an instructor profile")
 
             # Check if user already has an instructor profile
             if hasattr(user, 'instructor_profile'):
@@ -64,37 +52,22 @@ class InstructorViewSet(viewsets.ModelViewSet):
             headers = self.get_success_headers(serializer.data)
             return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
         except Exception as e:
-            print(f"InstructorViewSet create - Validation error: {e}")
-            print(f"Request data keys: {list(request.data.keys()) if hasattr(request.data, 'keys') else 'No keys'}")
-            raise
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     def update(self, request, *args, **kwargs):
-        print(f"InstructorViewSet update - Request data: {request.data}")
-        print(f"Request content type: {request.content_type}")
         try:
             data_for_validation = request.data.copy()
             from register.models import User
             from rest_framework import serializers
+            
             user_email = data_for_validation.pop('user_email', None)
-            password = data_for_validation.pop('password', None)
-
             instance = self.get_object()
-
-            if user_email:
-                user, created = User.objects.get_or_create(email=user_email, defaults={'username': user_email})
-                # Update the instructor's user email if it has changed
-                if instance.user.email != user_email:
-                    instance.user.email = user_email
-                    instance.user.save()
-
-            # Update password if provided
-            if password:
-                # Handle case where password might be sent as list from FormData
-                if isinstance(password, list):
-                    password = password[0] if password else None
-                if password and password.strip():  # Ensure it's not empty or just whitespace
-                    instance.user.set_password(password)
-                    instance.user.save()
+            
+            if user_email and instance.user.email != user_email:
+                # Update the user's email
+                instance.user.email = user_email
+                instance.user.username = user_email
+                instance.user.save()
 
             serializer = self.get_serializer(instance, data=data_for_validation)
             serializer.is_valid(raise_exception=True)
@@ -102,17 +75,11 @@ class InstructorViewSet(viewsets.ModelViewSet):
 
             return Response(serializer.data)
         except Exception as e:
-            print(f"InstructorViewSet update - Validation error: {e}")
-            print(f"Request data keys: {list(request.data.keys()) if hasattr(request.data, 'keys') else 'No keys'}")
-            raise
-
-
-
-
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'], url_path='upload-image',
             parser_classes=[MultiPartParser, FormParser],
-            permission_classes=[IsAdminOrReadOnly])
+            permission_classes=[IsAdminOrReadOnly])   # 👈 only admin can upload
     def upload_image(self, request, pk=None):
         """
         POST /api/instructors/<id>/upload-image/
@@ -141,7 +108,7 @@ class InstructorViewSet(viewsets.ModelViewSet):
             # Save the image
             instructor.image.save(image_file.name, image_file, save=True)
 
-            serializer = self.get_serializer(instructor)
+            serializer = self.get_serializer(instructor, context={'request': request})
             return Response({
                 "message": "Image uploaded successfully",
                 "instructor": serializer.data
@@ -158,9 +125,11 @@ class InstructorViewSet(viewsets.ModelViewSet):
 class InstructorProfileView(APIView):
     """
     GET /api/instructor/profile/
-    Get current instructor's profile based on authentication
+    PUT /api/instructor/profile/
+    Get or update current instructor's profile based on authentication
     """
     permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get(self, request):
         try:
@@ -169,12 +138,308 @@ class InstructorProfileView(APIView):
                 return Response({"detail": "Authentication credentials were not provided."},
                                 status=status.HTTP_401_UNAUTHORIZED)
                 
-            instructor = Instructor.objects.get(user=request.user)
-            serializer = InstructorSerializer(instructor)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except Instructor.DoesNotExist:
-            return Response({"error": "Instructor profile not found for this user"},
-                            status=status.HTTP_404_NOT_FOUND)
+            # First try to get instructor profile
+            try:
+                instructor = Instructor.objects.get(user=request.user)
+                serializer = InstructorSerializer(instructor, context={'request': request})
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            except Instructor.DoesNotExist:
+                # If not found as instructor, check if user is HOD from registration request
+                if request.user.role == 'hod':
+                    from hods.models import HODRegistrationRequest
+                    try:
+                        hod_request = HODRegistrationRequest.objects.get(
+                            employee_id=request.user.username,
+                            hod_request_status='account_created'
+                        )
+                        # Create a mock instructor-like response for HOD
+                        hod_data = {
+                            'id': hod_request.id,
+                            'name': hod_request.name,
+                            'employee_id': hod_request.employee_id,
+                            'phone': hod_request.phone,
+                            'designation': hod_request.designation,
+                            'specialization': hod_request.specialization,
+                            'experience_years': hod_request.experience_years,
+                            'department': {
+                                'department_id': hod_request.department.department_id,
+                                'name': hod_request.department.name,
+                                'code': hod_request.department.code
+                            },
+                            'department_name': hod_request.department.name,
+                            'user_email': hod_request.email,
+                            'image': None
+                        }
+                        return Response(hod_data, status=status.HTTP_200_OK)
+                    except HODRegistrationRequest.DoesNotExist:
+                        return Response({"error": "HOD profile not found for this user"},
+                                        status=status.HTTP_404_NOT_FOUND)
+                else:
+                    return Response({"error": "Instructor profile not found for this user"},
+                                    status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": str(e)},
                              status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    def put(self, request):
+        """Update instructor/HOD profile"""
+        try:
+            # Check if user is authenticated
+            if not request.user.is_authenticated:
+                return Response({"detail": "Authentication credentials were not provided."},
+                                status=status.HTTP_401_UNAUTHORIZED)
+            
+            # Try to get instructor profile first
+            try:
+                instructor = Instructor.objects.get(user=request.user)
+                
+                # Update user fields
+                user = request.user
+                user.first_name = request.data.get('first_name', user.first_name)
+                user.last_name = request.data.get('last_name', user.last_name)
+                user.email = request.data.get('email', user.email)
+                user.save()
+                
+                # Update instructor fields
+                instructor.phone = request.data.get('phone', instructor.phone)
+                instructor.designation = request.data.get('designation', instructor.designation)
+                instructor.specialization = request.data.get('specialization', instructor.specialization)
+                instructor.experience_years = request.data.get('experience_years', instructor.experience_years)
+                
+                # Handle image upload
+                if 'image' in request.FILES:
+                    instructor.image = request.FILES['image']
+                
+                instructor.save()
+                
+                serializer = InstructorSerializer(instructor, context={'request': request})
+                return Response({
+                    'success': True,
+                    'message': 'Profile updated successfully',
+                    'data': serializer.data
+                })
+                
+            except Instructor.DoesNotExist:
+                # If not found as instructor, check if user is HOD
+                if request.user.role == 'hod':
+                    from hods.models import HODRegistrationRequest
+                    try:
+                        hod_request = HODRegistrationRequest.objects.get(
+                            employee_id=request.user.username,
+                            hod_request_status='account_created'
+                        )
+                        
+                        # Update HOD request fields
+                        hod_request.name = request.data.get('name', hod_request.name)
+                        hod_request.email = request.data.get('email', hod_request.email)
+                        hod_request.phone = request.data.get('phone', hod_request.phone)
+                        hod_request.designation = request.data.get('designation', hod_request.designation)
+                        hod_request.specialization = request.data.get('specialization', hod_request.specialization)
+                        hod_request.experience_years = request.data.get('experience_years', hod_request.experience_years)
+                        hod_request.save()
+                        
+                        # Also update user fields
+                        user = request.user
+                        user.first_name = request.data.get('first_name', user.first_name)
+                        user.last_name = request.data.get('last_name', user.last_name)
+                        user.email = request.data.get('email', user.email)
+                        user.save()
+                        
+                        return Response({
+                            'success': True,
+                            'message': 'HOD profile updated successfully'
+                        })
+                        
+                    except HODRegistrationRequest.DoesNotExist:
+                        return Response({"error": "HOD profile not found for this user"},
+                                        status=status.HTTP_404_NOT_FOUND)
+                else:
+                    return Response({"error": "Profile not found for this user"},
+                                    status=status.HTTP_404_NOT_FOUND)
+                                    
+        except Exception as e:
+            return Response({"error": str(e)},
+                             status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class InstructorDashboardDataView(APIView):
+    """
+    GET /api/instructors/dashboard-data/
+    Get instructor's department semesters and courses for attendance marking
+    """
+    # permission_classes = [IsAuthenticated]  # Temporarily disabled for testing
+
+    def get(self, request):
+        try:
+            # Get instructor's department
+            instructor_department = None
+            
+            # Check if user is authenticated
+            if request.user and request.user.is_authenticated:
+                # First try to get from instructor profile
+                try:
+                    instructor = Instructor.objects.get(user=request.user)
+                    instructor_department = instructor.department
+                except Instructor.DoesNotExist:
+                    # If not found as instructor, check if user is HOD
+                    if hasattr(request.user, 'role') and request.user.role == 'hod':
+                        from hods.models import HODRegistrationRequest
+                        try:
+                            hod_request = HODRegistrationRequest.objects.get(
+                                employee_id=request.user.username,
+                                hod_request_status='account_created'
+                            )
+                            instructor_department = hod_request.department
+                        except HODRegistrationRequest.DoesNotExist:
+                            pass
+            
+            # If no department found, return all departments and semesters for testing
+            if not instructor_department:
+                from academics.models import Department, Semester, Course
+                # Get first department as fallback
+                departments = Department.objects.all()
+                if departments.exists():
+                    instructor_department = departments.first()
+                else:
+                    return Response({'error': 'No departments found'}, status=status.HTTP_404_NOT_FOUND)
+
+            # Get semesters for the department
+            from academics.models import Semester, Course
+            semesters = Semester.objects.filter(department=instructor_department)
+            
+            semesters_data = []
+            for semester in semesters:
+                semesters_data.append({
+                    'semester_id': semester.semester_id,
+                    'name': semester.name,
+                    'program': semester.program,
+                    'department': semester.department.name if semester.department else 'N/A'
+                })
+
+            # Get courses for the department
+            courses = Course.objects.filter(semester__department=instructor_department)
+            courses_data = []
+            for course in courses:
+                courses_data.append({
+                    'course_id': course.course_id,
+                    'name': course.name,
+                    'code': course.code,
+                    'credits': course.credits,
+                    'semester': course.semester.name if course.semester else 'N/A',
+                    'semester_id': course.semester.semester_id if course.semester else None,
+                })
+
+            return Response({
+                'semesters': semesters_data,
+                'courses': courses_data,
+                'department': {
+                    'department_id': instructor_department.department_id,
+                    'name': instructor_department.name,
+                    'code': instructor_department.code
+                }
+            })
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class AttendanceReportsView(APIView):
+    """
+    GET /api/instructors/attendance/reports/
+    Get attendance reports for students by department, semester, year, and month
+    """
+    # permission_classes = [IsAuthenticated]  # Temporarily disabled for testing
+
+    def get(self, request):
+        try:
+            department_id = request.GET.get('department_id')
+            semester_id = request.GET.get('semester_id')
+            year = request.GET.get('year')
+            month = request.GET.get('month')
+
+            if not all([department_id, semester_id, year, month]):
+                return Response({'error': 'department_id, semester_id, year, and month are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Import here to avoid circular imports
+            from instructors.models import AttendanceRecord
+            from datetime import datetime
+
+            # Create date range for the month
+            start_date = datetime(int(year), int(month), 1)
+            if int(month) == 12:
+                end_date = datetime(int(year) + 1, 1, 1)
+            else:
+                end_date = datetime(int(year), int(month) + 1, 1)
+
+            # Get attendance records for the specified period
+            attendance_records = AttendanceRecord.objects.filter(
+                student__department_id=department_id,
+                student__semester_id=semester_id,
+                date__gte=start_date,
+                date__lt=end_date
+            ).select_related('student')
+
+            # Format the data
+            records_data = []
+            for record in attendance_records:
+                records_data.append({
+                    'student_id': record.student.student_id,
+                    'student_name': record.student.name,
+                    'date': record.date.isoformat(),
+                    'status': record.status
+                })
+
+            return Response(records_data)
+
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+class HODRecordsView(APIView):
+    """
+    GET /api/instructors/hods/
+    Get all HOD records for admin management
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        try:
+            from hods.models import HODRegistrationRequest
+            
+            # Get all approved HOD requests
+            hod_requests = HODRegistrationRequest.objects.filter(
+                hod_request_status='account_created'
+            ).select_related('department')
+            
+            hod_data = []
+            for hod in hod_requests:
+                hod_info = {
+                    'id': hod.id,
+                    'name': hod.name,
+                    'email': hod.email,
+                    'employee_id': hod.employee_id,
+                    'phone': hod.phone,
+                    'designation': hod.designation,
+                    'specialization': hod.specialization,
+                    'experience_years': hod.experience_years,
+                    'image': None,
+                    'department': {
+                        'id': hod.department.department_id if hod.department else None,
+                        'name': hod.department.name if hod.department else None
+                    },
+                    'created_at': hod.requested_at,
+                    'updated_at': hod.reviewed_at
+                }
+                hod_data.append(hod_info)
+            
+            return Response({
+                'success': True,
+                'data': hod_data,
+                'count': len(hod_data)
+            })
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

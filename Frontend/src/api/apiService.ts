@@ -20,10 +20,14 @@ export const studentService = {
   uploadStudentImage: (id: number, formData: FormData) => api.post(`students/${id}/upload-image/`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
-  // New endpoints for scholarship prediction and metrics
-  predictScholarship: (id: number) => api.get(`students/${id}/predict-scholarship/`),
+
   updateStudentMetrics: (id: number) => api.post(`students/${id}/update-metrics/`),
   generatePerformanceNotes: (id: number, save: boolean = true) => api.post(`students/${id}/generate-notes/?save=${save}`),
+  getDepartmentStatistics: () => api.get('students/department-stats/'),
+  getStudentsByDepartment: (departmentId?: number) => {
+    const params = departmentId ? `?department_id=${departmentId}` : '';
+    return api.get(`students/department-filter/${params}`);
+  },
 };
 
 
@@ -96,94 +100,9 @@ export const announcementService = {
   deleteAnnouncement: (id: number) => api.delete(`announcements/${id}/`),
 };
 
-// Scholarship Service
-export const scholarshipService = {
-  getAllScholarships: () => api.get('academics/scholarships/'),
-  getScholarshipById: (id: number) => api.get(`academics/scholarships/${id}/`),
-  createScholarship: (data: any) => api.post('academics/scholarships/', data),
-  updateScholarship: (id: number, data: any) => api.put(`academics/scholarships/${id}/`, data),
-  deleteScholarship: (id: number) => api.delete(`academics/scholarships/${id}/`),
-  getStudentScholarships: (studentId: number) => api.get(`academics/students/${studentId}/scholarships/`),
-};
 
-// Messaging Service
-export const messagingService = {
-  // Individual messaging
-  sendIndividualMessage: (data: {
-    recipient_id: number;
-    message_type: 'SMS' | 'EMAIL' | 'CALL';
-    subject?: string;
-    body: string;
-  }) => api.post('messaging/send-individual/', data),
 
-  // Bulk messaging
-  sendBulkMessage: (data: {
-    recipient_type: 'INDIVIDUAL' | 'DEPARTMENT' | 'COURSE' | 'ALL_STUDENTS' | 'ALL_STAFF';
-    recipient_ids?: number[];
-    message_type: 'SMS' | 'EMAIL' | 'CALL';
-    subject?: string;
-    body: string;
-    priority?: 'LOW' | 'NORMAL' | 'HIGH';
-  }) => api.post('messaging/send-bulk/', data),
 
-  // Message history
-  getMessageHistory: () => api.get('messaging/history/'),
-
-  // Communication stats
-  getCommunicationStats: () => api.get('messaging/stats/'),
-
-  // Message management (ViewSets)
-  getAllMessages: () => api.get('messaging/messages/'),
-  getMessageById: (id: number) => api.get(`messaging/messages/${id}/`),
-  createMessage: (data: any) => api.post('messaging/messages/', data),
-  updateMessage: (id: number, data: any) => api.put(`messaging/messages/${id}/`, data),
-  deleteMessage: (id: number) => api.delete(`messaging/messages/${id}/`),
-
-  // Send message action
-  sendMessage: (id: number) => api.post(`messaging/messages/${id}/send/`),
-
-  // Sent messages
-  getSentMessages: () => api.get('messaging/messages/sent/'),
-
-  // Received messages
-  getReceivedMessages: () => api.get('messaging/messages/received/'),
-
-  // Message templates
-  getAllTemplates: () => api.get('messaging/templates/'),
-  getTemplateById: (id: number) => api.get(`messaging/templates/${id}/`),
-  createTemplate: (data: any) => api.post('messaging/templates/', data),
-  updateTemplate: (id: number, data: any) => api.put(`messaging/templates/${id}/`, data),
-  deleteTemplate: (id: number) => api.delete(`messaging/templates/${id}/`),
-
-  // Use template
-  useTemplate: (id: number) => api.post(`messaging/templates/${id}/use_template/`),
-
-  // SMS Settings
-  getAllSmsSettings: () => api.get('messaging/sms-settings/'),
-  getSmsSettingById: (id: number) => api.get(`messaging/sms-settings/${id}/`),
-  createSmsSetting: (data: any) => api.post('messaging/sms-settings/', data),
-  updateSmsSetting: (id: number, data: any) => api.put(`messaging/sms-settings/${id}/`, data),
-  deleteSmsSetting: (id: number) => api.delete(`messaging/sms-settings/${id}/`),
-
-  // Email Settings
-  getAllEmailSettings: () => api.get('messaging/email-settings/'),
-  getEmailSettingById: (id: number) => api.get(`messaging/email-settings/${id}/`),
-  createEmailSetting: (data: any) => api.post('messaging/email-settings/', data),
-  updateEmailSetting: (id: number, data: any) => api.put(`messaging/email-settings/${id}/`, data),
-  deleteEmailSetting: (id: number) => api.delete(`messaging/email-settings/${id}/`),
-  
-  // Search recipients
-  searchRecipients: (query: string, type?: string) => {
-    const params = new URLSearchParams({ q: query });
-    if (type) params.append('type', type);
-    return api.get(`messaging/messages/search_recipients/?${params.toString()}`);
-  },
-  
-  // Call functionality
-  initiateCall: (recipientId: number, recipientType: string) => api.post(`messaging/call/initiate/`, { recipient_id: recipientId, recipient_type: recipientType }),
-  endCall: (callId: number) => api.post(`messaging/call/${callId}/end/`),
-  saveCallNotes: (callId: number, notes: string) => api.post(`messaging/call/${callId}/notes/`, { notes })
-};
 
 // Re-export authService from api.ts
 export { authService } from './api';

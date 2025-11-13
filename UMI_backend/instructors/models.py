@@ -38,6 +38,7 @@ class Instructor(models.Model):
     address = models.CharField(max_length=200, null=True, blank=True)
     experience_years = models.IntegerField(default=0)
     image = models.ImageField(upload_to="instructors/", null=True, blank=True)
+    password = models.CharField(max_length=128, null=True, blank=True)
 
     # --- AI fields ---
     ai_profile_notes = models.TextField(null=True, blank=True)
@@ -45,3 +46,6 @@ class Instructor(models.Model):
 
     def __str__(self):
         return self.user.email
+
+
+

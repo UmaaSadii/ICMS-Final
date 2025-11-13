@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Login from './Login';
-import Register from './Register';
+import RegisterForm from '../components/pages/RegisterForm';
 import { useAuth } from '../context/AuthContext';
 
 const AuthPage: React.FC = () => {
@@ -105,7 +105,7 @@ const AuthPage: React.FC = () => {
               animate={{ opacity: 1 }}
               transition={{ duration: 0.4 }}
             >
-              <Register />
+              <RegisterForm />
             </motion.div>
           )}
         </motion.div>

@@ -33,6 +33,7 @@ export interface Instructor {
   id?: number;
   user?: User | number;
   name?: string;
+  email?: string;
   phone?: string;
   department?: Department | number;
   department_id?: number;

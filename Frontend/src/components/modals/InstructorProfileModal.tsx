@@ -3,6 +3,13 @@ import { motion } from 'framer-motion';
 import { instructorService, departmentService, Instructor } from '../../api/studentInstructorService';
 import { toast } from 'react-toastify';
 
+// Utility function to decode HTML entities
+const decodeHtmlEntities = (text: string): string => {
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = text;
+  return textarea.value;
+};
+
 interface Department {
   id: number;
   department_id?: number;
@@ -434,7 +441,42 @@ const InstructorProfileModal: React.FC<InstructorProfileModalProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <p className="text-sm text-gray-500">Email</p>
-                    <p className="font-medium">{(typeof instructor.user === 'object' && instructor.user !== null ? instructor.user.email : '') || 'N/A'}</p>
+                    <p className="font-medium">{(() => {
+                      // Try multiple possible email sources
+                      let email = null;
+                      
+                      // Check user object first
+                      if (instructor.user && typeof instructor.user === 'object' && instructor.user !== null) {
+                        email = instructor.user.email;
+                      }
+                      
+                      // Fallback to direct email fields
+                      if (!email) {
+                        email = instructor.email || instructor.user_email;
+                      }
+                      
+                      // Handle array case and string arrays
+                      if (Array.isArray(email)) {
+                        email = email[0];
+                      } else if (email && typeof email === 'string' && email.startsWith('[')) {
+                        // Handle string that looks like an array: "['email@domain.com']"
+                        try {
+                          const parsed = JSON.parse(email.replace(/'/g, '"'));
+                          email = Array.isArray(parsed) ? parsed[0] : email;
+                        } catch {
+                          // If JSON parsing fails, extract manually
+                          email = email.replace(/[\[\]'"]/g, '');
+                        }
+                      }
+                      
+                      // Clean and decode HTML entities if email exists
+                      if (email && typeof email === 'string') {
+                        email = email.replace(/[\[\]'"]/g, '');
+                        email = decodeHtmlEntities(email);
+                      }
+                      
+                      return email || 'N/A';
+                    })()}</p>
                   </div>
 
                   <div className="bg-gray-50 p-4 rounded-lg">

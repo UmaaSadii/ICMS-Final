@@ -38,25 +38,13 @@ interface Student {
   enrollment_date?: string;
 }
 
-interface ScholarshipPrediction {
-  eligibility_status: string;
-  eligibility_score: number;
-  eligibility_factors: string[];
-  recommended_scholarships: {
-    id: number;
-    name: string;
-    amount: number;
-    requirements: string[];
-  }[];
-}
+
 
 const EnhancedStudentProfile: React.FC<EnhancedStudentProfileProps> = ({ studentId, onClose }) => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [student, setStudent] = useState<Student | null>(null);
-  const [scholarshipPrediction, setScholarshipPrediction] = useState<ScholarshipPrediction | null>(null);
-  const [predictingScholarship, setPredictingScholarship] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'academic' | 'personal' | 'scholarship'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'academic' | 'personal'>('overview');
   
   useEffect(() => {
     const fetchStudent = async () => {
@@ -78,44 +66,7 @@ const EnhancedStudentProfile: React.FC<EnhancedStudentProfileProps> = ({ student
     fetchStudent();
   }, [studentId]);
 
-  const predictScholarship = async () => {
-    if (!studentId || !student) return;
-    
-    setPredictingScholarship(true);
-    try {
-      // Simulate scholarship prediction API call
-      const mockPrediction: ScholarshipPrediction = {
-        eligibility_status: student.gpa >= 3.5 ? 'Eligible' : 'Not Eligible',
-        eligibility_score: Math.min(95, Math.max(20, (student.gpa * 20) + (student.attendance_percentage * 0.3))),
-        eligibility_factors: [
-          `GPA: ${student.gpa.toFixed(2)}/5.0`,
-          `Attendance: ${student.attendance_percentage.toFixed(1)}%`,
-          student.gpa >= 3.5 ? 'High academic performance' : 'Average academic performance',
-          student.attendance_percentage >= 90 ? 'Excellent attendance record' : 'Good attendance record'
-        ],
-        recommended_scholarships: student.gpa >= 3.5 ? [
-          {
-            id: 1,
-            name: 'Merit Scholarship',
-            amount: 5000,
-            requirements: ['GPA >= 3.5', 'Attendance >= 85%']
-          },
-          {
-            id: 2,
-            name: 'Excellence Award',
-            amount: 3000,
-            requirements: ['GPA >= 3.2', 'Good conduct']
-          }
-        ] : []
-      };
-      
-      setScholarshipPrediction(mockPrediction);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to predict scholarship eligibility');
-    } finally {
-      setPredictingScholarship(false);
-    }
-  };
+
   
   const handleBack = () => {
     if (onClose) {
@@ -169,8 +120,7 @@ const EnhancedStudentProfile: React.FC<EnhancedStudentProfileProps> = ({ student
   const tabs = [
     { id: 'overview', name: 'Overview', icon: '👤' },
     { id: 'academic', name: 'Academic', icon: '📚' },
-    { id: 'personal', name: 'Personal', icon: 'ℹ️' },
-    { id: 'scholarship', name: 'Scholarship', icon: '🎓' }
+    { id: 'personal', name: 'Personal', icon: 'ℹ️' }
   ];
 
   return (
@@ -352,113 +302,7 @@ const EnhancedStudentProfile: React.FC<EnhancedStudentProfileProps> = ({ student
             </div>
           )}
 
-          {activeTab === 'scholarship' && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-800">Scholarship Predictions</h2>
-                <button
-                  onClick={predictScholarship}
-                  disabled={predictingScholarship}
-                  className="bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white px-6 py-3 rounded-lg transition-colors flex items-center space-x-2"
-                >
-                  {predictingScholarship ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white"></div>
-                      <span>Analyzing...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                      </svg>
-                      <span>Analyze Eligibility</span>
-                    </>
-                  )}
-                </button>
-              </div>
 
-              {scholarshipPrediction ? (
-                <div className="space-y-6">
-                  <div className={`p-6 rounded-xl ${scholarshipPrediction.eligibility_status === 'Eligible' ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-xl font-semibold text-gray-800">Eligibility Status</h3>
-                      <span className={`px-4 py-2 rounded-full text-sm font-medium ${
-                        scholarshipPrediction.eligibility_status === 'Eligible' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {scholarshipPrediction.eligibility_status}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-1">
-                        <div className="flex justify-between text-sm text-gray-600 mb-1">
-                          <span>Eligibility Score</span>
-                          <span>{scholarshipPrediction.eligibility_score}/100</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className={`h-2 rounded-full ${scholarshipPrediction.eligibility_score >= 70 ? 'bg-green-500' : scholarshipPrediction.eligibility_score >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
-                            style={{ width: `${scholarshipPrediction.eligibility_score}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-700 mb-3">Eligibility Factors</h4>
-                      <ul className="space-y-2">
-                        {scholarshipPrediction.eligibility_factors.map((factor, index) => (
-                          <li key={index} className="flex items-center space-x-2 text-gray-600">
-                            <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                            </svg>
-                            <span>{factor}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-700 mb-3">Recommended Scholarships</h4>
-                      {scholarshipPrediction.recommended_scholarships.length > 0 ? (
-                        <div className="space-y-3">
-                          {scholarshipPrediction.recommended_scholarships.map((scholarship) => (
-                            <div key={scholarship.id} className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                              <div className="flex justify-between items-start mb-2">
-                                <h5 className="font-semibold text-blue-900">{scholarship.name}</h5>
-                                <span className="text-lg font-bold text-blue-600">${scholarship.amount.toLocaleString()}</span>
-                              </div>
-                              <div className="text-sm text-blue-700">
-                                <p className="font-medium mb-1">Requirements:</p>
-                                <ul className="list-disc list-inside space-y-1">
-                                  {scholarship.requirements.map((req, index) => (
-                                    <li key={index}>{req}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-gray-500 italic">No scholarships available at this time.</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <svg className="mx-auto h-16 w-16 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                  </svg>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Scholarship Analysis</h3>
-                  <p className="text-gray-500">Click "Analyze Eligibility" to get personalized scholarship recommendations based on academic performance.</p>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       </div>
     </div>

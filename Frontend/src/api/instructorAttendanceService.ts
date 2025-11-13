@@ -46,13 +46,13 @@ export interface BulkAttendanceResponse {
 class InstructorAttendanceService {
   // Get all departments added by admin (for attendance and results)
   async getDepartments(): Promise<Department[]> {
-    const response = await api.get('/academics/departments/');
+    const response = await api.get('/instructors/departments/');
     return response.data;
   }
 
   // Get semesters for a department
   async getSemestersByDepartment(departmentId: number): Promise<Semester[]> {
-    const response = await api.get(`/academics/departments/${departmentId}/semesters/`);
+    const response = await api.get(`/instructors/departments/${departmentId}/semesters/`);
     return response.data;
   }
 

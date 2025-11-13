@@ -3,6 +3,13 @@ import { instructorService, departmentService, Instructor, Department } from '..
 import InstructorModal from '../modals/InstructorModal';
 import InstructorProfileModal from '../modals/InstructorProfileModal';
 
+// Utility function to decode HTML entities
+const decodeHtmlEntities = (text: string): string => {
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = text;
+  return textarea.value;
+};
+
 interface TeacherManagementProps {
   activeTab: string;
 }
@@ -16,54 +23,42 @@ const TeacherManagement: React.FC<TeacherManagementProps> = ({ activeTab }) => {
   const [editingInstructor, setEditingInstructor] = useState<Instructor | null>(null);
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
   const [viewingInstructor, setViewingInstructor] = useState<Instructor | null>(null);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
 
-  // Fetch instructors on component mount
-  useEffect(() => {
-    const fetchInstructors = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await instructorService.getAllInstructors();
-        if (Array.isArray(response.data)) {
-          setInstructors(response.data);
-        } else {
-          console.error('Invalid instructors data format:', response.data);
-          setInstructors([]);
-          setError('Invalid data format received from server');
-        }
-      } catch (err: any) {
-        setError(err.response?.data?.message || 'Failed to fetch instructors');
-      } finally {
-        setLoading(false);
+  const fetchInstructors = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await instructorService.getAllInstructors();
+      if (Array.isArray(response.data)) {
+        setInstructors(response.data);
+      } else {
+        setInstructors([]);
+        setError('Invalid data format received from server');
       }
-    };
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch instructors');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
+  const fetchDepartments = useCallback(async () => {
+    try {
+      const response = await departmentService.getAllDepartments();
+      setDepartments(response.data);
+    } catch (err: any) {
+      console.error('Failed to fetch departments:', err);
+    }
+  }, []);
+
+  useEffect(() => {
     if (activeTab === 'instructors') {
       fetchInstructors();
+      fetchDepartments();
     }
-  }, [activeTab]);
-
-  // Fetch departments
-  useEffect(() => {
-    const fetchDepartments = async () => {
-      try {
-        const response = await departmentService.getAllDepartments();
-        setDepartments(response.data);
-      } catch (err: any) {
-        console.error('Failed to fetch departments:', err);
-      }
-    };
-
-    fetchDepartments();
-  }, []);
-
-  const handleInstructorUpdate = useCallback((updatedInstructor: Instructor) => {
-    setInstructors(prev =>
-      prev.map(instructor =>
-        instructor.id === updatedInstructor.id ? updatedInstructor : instructor
-      )
-    );
-  }, []);
+  }, [activeTab, fetchInstructors, fetchDepartments]);
 
   const handleInstructorDelete = useCallback(async (instructorId: number) => {
     if (window.confirm('Are you sure you want to delete this instructor?')) {
@@ -76,277 +71,284 @@ const TeacherManagement: React.FC<TeacherManagementProps> = ({ activeTab }) => {
     }
   }, []);
 
-  const handleAddInstructor = useCallback(() => {
-    setEditingInstructor(null);
-    setShowModal(true);
-  }, []);
-
-  const handleEditInstructor = useCallback((instructor: Instructor) => {
-    setEditingInstructor(instructor);
-    setShowModal(true);
-  }, []);
-
-  const handleModalClose = useCallback(() => {
-    setShowModal(false);
-    setEditingInstructor(null);
-  }, []);
-
-  const handleInstructorSave = useCallback(async (instructorData: any) => {
-    try {
-      if (editingInstructor && typeof editingInstructor.id === 'number') {
-        // Update existing instructor
-        const response = await instructorService.updateInstructor(editingInstructor.id, instructorData);
-        setInstructors(prev =>
-          prev.map(instructor =>
-            instructor.id === editingInstructor.id ? response.data : instructor
-          )
-        );
-      } else {
-        // Create new instructor
-        const response = await instructorService.createInstructor(instructorData);
-        setInstructors(prev => [...prev, response.data]);
-      }
-      setShowModal(false);
-      setEditingInstructor(null);
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to save instructor');
+  const filteredInstructors = useMemo(() => {
+    let filtered = instructors;
+    
+    if (selectedDepartment) {
+      filtered = filtered.filter(instructor => 
+        instructor.department_name === selectedDepartment
+      );
     }
-  }, [editingInstructor]);
+    
+    if (searchTerm.trim()) {
+      const lowerSearch = searchTerm.toLowerCase();
+      filtered = filtered.filter(inst =>
+        (inst.name && inst.name.toLowerCase().includes(lowerSearch)) ||
+        (inst.department_name && inst.department_name.toLowerCase().includes(lowerSearch)) ||
+        (inst.designation && inst.designation.toLowerCase().includes(lowerSearch))
+      );
+    }
+    
+    return filtered;
+  }, [searchTerm, selectedDepartment, instructors]);
 
   const instructorStats = useMemo(() => {
-    const total = Array.isArray(instructors) ? instructors.length : 0;
-    const byDepartment = Array.isArray(instructors) ? instructors.reduce((acc, instructor) => {
-      const deptName = instructor.department_name || 'Unknown';
+    const total = instructors.length;
+    const byDepartment = instructors.reduce((acc, instructor) => {
+      const deptName = instructor.department_name || 'Unassigned';
       acc[deptName] = (acc[deptName] || 0) + 1;
       return acc;
-    }, {} as Record<string, number>) : {};
+    }, {} as Record<string, number>);
 
-    // Remove 'Unknown' key and add its count to 'Student' key
-    if (byDepartment['Unknown']) {
-      const unknownCount = byDepartment['Unknown'];
-      delete byDepartment['Unknown'];
-      byDepartment['Student'] = (byDepartment['Student'] || 0) + unknownCount;
-    }
+    const avgExperience = instructors.length > 0 
+      ? instructors.reduce((sum, inst) => sum + (inst.experience_years || 0), 0) / instructors.length
+      : 0;
 
-    return { total, byDepartment };
+    return { total, byDepartment, avgExperience };
   }, [instructors]);
-  
-  // Add search state
-  const [searchTerm, setSearchTerm] = React.useState('');
-  
-  // Filtered instructors based on search term
-  const filteredInstructors = useMemo(() => {
-    if (!searchTerm.trim()) return instructors;
-    const lowerSearch = searchTerm.toLowerCase();
-    return instructors.filter(inst =>
-      (inst.name && inst.name.toLowerCase().includes(lowerSearch)) ||
-      (inst.department_name && inst.department_name.toLowerCase().includes(lowerSearch)) ||
-      (inst.designation && inst.designation.toLowerCase().includes(lowerSearch))
-    );
-  }, [searchTerm, instructors]);
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-        {error}
-      </div>
-    );
-  }
 
   return (
-    <div className="p-6" role="main" aria-labelledby="instructor-management-heading">
+    <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 id="instructor-management-heading" className="text-2xl font-bold text-gray-800">
-          Instructors ({filteredInstructors.length})
-        </h2>
-        <div className="flex items-center space-x-4">
+        <h2 className="text-2xl font-bold text-gray-800">Instructors</h2>
+        <div className="flex space-x-4">
           <input
-            id="instructor-search"
             type="text"
             placeholder="Search instructors..."
             value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            aria-describedby="instructor-search-help"
           />
-          <span id="instructor-search-help" className="sr-only">
-            Search by instructor name, department, or designation
-          </span>
-          <button
-            onClick={handleAddInstructor}
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center space-x-2"
+          <select
+            value={selectedDepartment || ''}
+            onChange={(e) => setSelectedDepartment(e.target.value || null)}
+            className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-            </svg>
-            <span>Add Instructor</span>
+            <option value="">All Departments</option>
+            {Object.keys(instructorStats.byDepartment).map(dept => (
+              <option key={dept} value={dept}>{dept}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => {
+              setEditingInstructor(null);
+              setShowModal(true);
+            }}
+            className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+          >
+            Add Instructor
           </button>
         </div>
       </div>
-
-      {/* Error Alert */}
+      
       {error && (
-        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg" role="alert">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <p className="text-sm text-red-800">{error}</p>
-            </div>
-          </div>
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-800">{error}</p>
         </div>
       )}
 
-      {/* Department Statistics */}
-      <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 mb-6">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">Department Statistics</h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {Object.entries(instructorStats.byDepartment).map(([dept, count]) => (
-            <div key={dept} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
-              <h4 className="font-semibold text-gray-800">{dept}</h4>
-              <p className="text-2xl font-bold text-gray-900">{count}</p>
-              <p className="text-sm text-gray-600">instructors</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Instructors List */}
-      <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-6 rounded-xl shadow-lg border border-blue-200 hover:shadow-xl transition-all duration-300">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-800">
-              Instructors ({filteredInstructors.length})
-            </h3>
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-green-400 rounded-full"></div>
-              <span className="text-sm text-gray-600">Active</span>
+            <div>
+              <p className="text-sm font-medium text-blue-600 mb-1">Total Instructors</p>
+              <p className="text-3xl font-bold text-blue-900">{instructors.length}</p>
+            </div>
+            <div className="p-3 bg-blue-500 rounded-full shadow-lg">
+              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"/>
+              </svg>
             </div>
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Instructor
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Department
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Designation
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Experience
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredInstructors.map((instructor) => (
-                <tr key={instructor.id} className="hover:bg-gradient-to-r hover:from-blue-50 hover:to-indigo-50 transition-all duration-200">
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex items-center">
-                    <div className="flex-shrink-0 h-10 w-10">
-                      {instructor.image ? (
-                        <img className="h-10 w-10 rounded-full object-cover" src={typeof instructor.image === 'string' ? instructor.image : ''} alt={instructor.name || 'Instructor'} />
-                      ) : (
-                        <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                          <span className="text-sm font-medium text-gray-700">
-                            {instructor.name ? instructor.name.charAt(0).toUpperCase() : ''}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">{instructor.name || 'N/A'}</div>
-                      <div className="text-sm text-gray-500">{instructor.user_email || 'N/A'}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{instructor.department_name || 'N/A'}</div>
-                  <div className="text-sm text-gray-500">{instructor.specialization || 'N/A'}</div>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {instructor.designation || 'N/A'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {typeof instructor.experience_years === 'number' ? `${instructor.experience_years} years` : 'N/A'}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <div className="flex items-center space-x-2">
-                    <button
-                      onClick={() => {
-                        setViewingInstructor(instructor);
-                        setShowProfileModal(true);
-                      }}
-                      title="View"
-                      className="p-1 rounded-md hover:bg-gray-100 text-gray-600"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => handleEditInstructor(instructor)}
-                      title="Edit"
-                      className="p-1 rounded-md hover:bg-blue-100 text-blue-600"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => handleInstructorDelete(instructor.id!)}
-                      title="Delete"
-                      className="p-1 rounded-md hover:bg-red-100 text-red-600"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        
+        <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-xl shadow-lg border border-green-200 hover:shadow-xl transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-green-600 mb-1">Departments</p>
+              <p className="text-3xl font-bold text-green-900">{Object.keys(instructorStats.byDepartment).length}</p>
+            </div>
+            <div className="p-3 bg-green-500 rounded-full shadow-lg">
+              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9z"/>
+              </svg>
+            </div>
+          </div>
         </div>
+        
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-6 rounded-xl shadow-lg border border-purple-200 hover:shadow-xl transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-purple-600 mb-1">
+                {selectedDepartment ? selectedDepartment : 'Filtered Results'}
+              </p>
+              <p className="text-3xl font-bold text-purple-900">{filteredInstructors.length}</p>
+            </div>
+            <div className="p-3 bg-purple-500 rounded-full shadow-lg">
+              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-gradient-to-br from-amber-50 to-amber-100 p-6 rounded-xl shadow-lg border border-amber-200 hover:shadow-xl transition-all duration-300">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-amber-600 mb-1">Avg Experience</p>
+              <p className="text-3xl font-bold text-amber-900">
+                {instructorStats.avgExperience.toFixed(1)}y
+              </p>
+            </div>
+            <div className="p-3 bg-amber-500 rounded-full shadow-lg">
+              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <h3 className="text-lg font-semibold text-gray-800">
+            {filteredInstructors.length} Instructors
+          </h3>
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px]">Instructor</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">Department</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">Designation</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">Experience</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {filteredInstructors.map((instructor) => (
+                  <tr key={instructor.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10">
+                          {instructor.image ? (
+                            <img className="h-10 w-10 rounded-full object-cover" src={typeof instructor.image === 'string' ? instructor.image : ''} alt={instructor.name || 'Instructor'} />
+                          ) : (
+                            <div className="h-10 w-10 rounded-full bg-indigo-500 flex items-center justify-center">
+                              <span className="text-white font-medium text-sm">
+                                {instructor.name ? instructor.name.charAt(0) : ''}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">{instructor.name || 'N/A'}</div>
+                          <div className="text-sm text-gray-500">{(() => {
+                            // Try multiple possible email sources
+                            let email = null;
+                            
+                            // Check user object first
+                            if (instructor.user && typeof instructor.user === 'object' && instructor.user !== null) {
+                              email = instructor.user.email;
+                            }
+                            
+                            // Fallback to direct email fields
+                            if (!email) {
+                              email = instructor.email || instructor.user_email;
+                            }
+                            
+                            // Handle array case and string arrays
+                            if (Array.isArray(email)) {
+                              email = email[0];
+                            } else if (email && typeof email === 'string' && email.startsWith('[')) {
+                              // Handle string that looks like an array: "['email@domain.com']"
+                              try {
+                                const parsed = JSON.parse(email.replace(/'/g, '"'));
+                                email = Array.isArray(parsed) ? parsed[0] : email;
+                              } catch {
+                                // If JSON parsing fails, extract manually
+                                email = email.replace(/[\[\]'"]/g, '');
+                              }
+                            }
+                            
+                            // Clean and decode HTML entities
+                            if (email && typeof email === 'string') {
+                              email = email.replace(/[\[\]'"]/g, '');
+                              email = decodeHtmlEntities(email);
+                            }
+                            
+                            return email || 'N/A';
+                          })()}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {instructor.department_name || 'Unassigned'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {instructor.designation || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {instructor.experience_years ? `${instructor.experience_years} years` : 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => {
+                            setViewingInstructor(instructor);
+                            setShowProfileModal(true);
+                          }}
+                          className="inline-flex items-center px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors duration-200 border border-emerald-200"
+                          title="View instructor profile"
+                        >
+                          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                          </svg>
+                          Profile
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingInstructor(instructor);
+                            setShowModal(true);
+                          }}
+                          className="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors duration-200 border border-blue-200"
+                          title="Edit instructor details"
+                        >
+                          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleInstructorDelete(instructor.id!)}
+                          className="inline-flex items-center px-3 py-1.5 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors duration-200 border border-red-200"
+                          title="Remove instructor"
+                        >
+                          <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Remove
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {filteredInstructors.length === 0 && !loading && (
           <div className="text-center py-12">
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No instructors found</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by adding a new instructor.</p>
-            <div className="mt-6">
-              <button
-                onClick={handleAddInstructor}
-                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                <svg className="-ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                Add Instructor
-              </button>
-            </div>
+            <p className="text-gray-500">No instructors found</p>
           </div>
         )}
       </div>
@@ -378,20 +380,7 @@ const TeacherManagement: React.FC<TeacherManagementProps> = ({ activeTab }) => {
           onSuccess={() => {
             setShowModal(false);
             setEditingInstructor(null);
-            // Refetch instructors after save
-            if (activeTab === 'instructors') {
-              const fetchInstructors = async () => {
-                try {
-                  const response = await instructorService.getAllInstructors();
-                  if (Array.isArray(response.data)) {
-                    setInstructors(response.data);
-                  }
-                } catch (err: any) {
-                  console.error('Failed to refetch instructors:', err);
-                }
-              };
-              fetchInstructors();
-            }
+            fetchInstructors();
           }}
         />
       )}

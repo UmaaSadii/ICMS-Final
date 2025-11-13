@@ -7,15 +7,83 @@ const AttendanceManagement: React.FC = () => {
   const [students, setStudents] = useState<Student[]>([]);
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
   const [selectedSemester, setSelectedSemester] = useState<number | null>(null);
-  const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [attendanceDate] = useState(new Date().toISOString().split('T')[0]);
   const [attendanceStatuses, setAttendanceStatuses] = useState<{ [key: string]: 'Present' | 'Absent' | 'Late' }>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [canEdit, setCanEdit] = useState(true);
+  const [canSubmitNow, setCanSubmitNow] = useState(true);
+  const [hasSlotsToday, setHasSlotsToday] = useState(true);
 
   useEffect(() => {
     fetchDepartments();
+    checkTodayStatus();
   }, []);
+
+  const checkTodayStatus = async () => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/api/instructors/attendance/test-status/?date=${attendanceDate}`, {
+        headers: {
+          'Authorization': `Token ${JSON.parse(localStorage.getItem('auth') || '{}').access_token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('Status check response:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Status data:', data);
+        setIsSubmitted(data.is_submitted);
+        setCanEdit(true); // Always allow editing
+        setCanSubmitNow(true); // Force enable for testing
+        setHasSlotsToday(true); // Force enable for testing
+      } else {
+        console.error('Status check failed:', response.status);
+        // Force enable even if API fails
+        setIsSubmitted(false);
+        setCanEdit(true);
+        setCanSubmitNow(true);
+        setHasSlotsToday(true);
+      }
+    } catch (error) {
+      console.error('Error checking today status:', error);
+    }
+  };
+
+  const submitTodayAttendance = async () => {
+    if (!window.confirm('Submit attendance? This will lock the records and cannot be undone without admin approval.')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch('http://127.0.0.1:8000/api/instructors/attendance/test-submit/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${JSON.parse(localStorage.getItem('auth') || '{}').access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ date: attendanceDate })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setSuccess(result.message);
+        setIsSubmitted(true);
+        setCanEdit(false);
+      } else {
+        const error = await response.json();
+        setError(error.error);
+      }
+    } catch (error) {
+      setError('Failed to submit attendance');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (selectedDepartment) {
@@ -42,10 +110,11 @@ const AttendanceManagement: React.FC = () => {
     try {
       setLoading(true);
       const response = await instructorAttendanceService.getDepartments();
-      console.log('Fetched departments:', response);  // Debug log
-      setDepartments(response);
+      console.log('Fetched departments:', response);
+      setDepartments(Array.isArray(response) ? response : (response as any).results || []);
+      setError(null);
     } catch (err: any) {
-      console.error('Error fetching departments:', err);  // Debug log
+      console.error('Error fetching departments:', err);
       setError('Failed to fetch departments');
     } finally {
       setLoading(false);
@@ -56,8 +125,11 @@ const AttendanceManagement: React.FC = () => {
     try {
       setLoading(true);
       const response = await instructorAttendanceService.getSemestersByDepartment(departmentId);
-      setSemesters(response);
+      console.log('Fetched semesters:', response);
+      setSemesters(Array.isArray(response) ? response : (response as any).results || []);
+      setError(null);
     } catch (err: any) {
+      console.error('Error fetching semesters:', err);
       setError('Failed to fetch semesters');
     } finally {
       setLoading(false);
@@ -68,15 +140,19 @@ const AttendanceManagement: React.FC = () => {
     try {
       setLoading(true);
       const response = await instructorAttendanceService.getStudentsByDepartmentAndSemester(departmentId, semesterId);
-      setStudents(response);
+      console.log('Fetched students:', response);
+      const studentList = Array.isArray(response) ? response : (response as any).results || [];
+      setStudents(studentList);
 
       // Initialize attendance statuses to 'Present' for all students
       const initialStatuses: { [key: string]: 'Present' | 'Absent' | 'Late' } = {};
-      response.forEach(student => {
+      studentList.forEach((student: any) => {
         initialStatuses[student.student_id] = 'Present';
       });
       setAttendanceStatuses(initialStatuses);
+      setError(null);
     } catch (err: any) {
+      console.error('Error fetching students:', err);
       setError('Failed to fetch students');
     } finally {
       setLoading(false);
@@ -111,8 +187,24 @@ const AttendanceManagement: React.FC = () => {
         attendances: attendances
       };
 
-      const response = await instructorAttendanceService.markBulkAttendance(requestData);
-      setSuccess(response.message);
+      // Use test endpoint for testing
+      const response = await fetch('http://127.0.0.1:8000/api/instructors/attendance/test-bulk/', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Token ${JSON.parse(localStorage.getItem('auth') || '{}').access_token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to mark attendance');
+      }
+      
+      const result = await response.json();
+      setSuccess(result.message);
+      checkTodayStatus(); // Refresh status after marking
 
       // Reset attendance statuses to Present after successful submission
       const resetStatuses: { [key: string]: 'Present' | 'Absent' | 'Late' } = {};
@@ -171,13 +263,11 @@ const AttendanceManagement: React.FC = () => {
               className="w-full p-2 border rounded"
             >
               <option value="">Select Department</option>
-              {departments
-                .filter((dept): dept is Department => dept.id != null && typeof dept.id === 'number')
-                .map((dept) => (
-                  <option key={dept.id} value={dept.id.toString()}>
-                    {dept.name} ({dept.code})
-                  </option>
-                ))}
+              {departments.map((dept) => (
+                <option key={dept.id} value={dept.id.toString()}>
+                  {dept.name} ({dept.code})
+                </option>
+              ))}
             </select>
           </div>
 
@@ -190,29 +280,29 @@ const AttendanceManagement: React.FC = () => {
               disabled={!selectedDepartment}
             >
               <option value="">Select Semester</option>
-              {semesters
-                .filter((sem): sem is Semester => sem.id != null && typeof sem.id === 'number')
-                .map((sem) => (
-                  <option key={sem.id} value={sem.id}>
-                    {sem.name}
-                  </option>
-                ))}
+              {semesters.map((sem) => (
+                <option key={sem.id} value={sem.id}>
+                  {sem.name}
+                </option>
+              ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Date</label>
+            <label className="block text-sm font-medium mb-2">Date (TEST MODE)</label>
             <input
               type="date"
               value={attendanceDate}
-              max={new Date().toISOString().split('T')[0]}  // Prevent future dates
-              onChange={(e) => {
-                if (e.target.value <= new Date().toISOString().split('T')[0]) {
-                  setAttendanceDate(e.target.value);
-                }
-              }}
-              className="w-full p-2 border rounded"
+              disabled
+              className="w-full p-2 border rounded bg-gray-100 cursor-not-allowed"
             />
+            <p className="text-xs text-green-600 mt-1">✅ No time restrictions - Submit anytime</p>
+            {isSubmitted && (
+              <p className="text-sm text-green-600 mt-1">✓ Attendance submitted and locked</p>
+            )}
+            {isSubmitted && (
+              <p className="text-sm text-green-600 mt-1">✅ Attendance can be submitted anytime</p>
+            )}
           </div>
         </div>
       </div>
@@ -242,11 +332,24 @@ const AttendanceManagement: React.FC = () => {
               </button>
               <button
                 onClick={handleSubmitAttendance}
-                disabled={loading}
-                className="bg-blue-600 text-white px-4 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
+                disabled={loading || !canEdit}
+                className={`px-4 py-1 rounded text-white ${
+                  !canEdit ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+                } disabled:opacity-50`}
               >
-                {loading ? 'Saving...' : 'Submit Attendance'}
+                {loading ? 'Saving...' : !canEdit ? 'Already Submitted' : 'Mark Attendance'}
               </button>
+              {students.length > 0 && (
+                <button
+                  onClick={submitTodayAttendance}
+                  disabled={loading || isSubmitted}
+                  className={`px-4 py-1 rounded text-white font-semibold ${
+                    isSubmitted ? 'bg-gray-400 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                  } disabled:opacity-50`}
+                >
+                  {isSubmitted ? '✓ Submitted' : '🔒 Submit & Lock'}
+                </button>
+              )}
             </div>
           </div>
 

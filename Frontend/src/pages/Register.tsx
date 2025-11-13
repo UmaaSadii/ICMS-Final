@@ -10,22 +10,73 @@ interface RegisterForm {
   role: string;
   first_name: string;
   last_name: string;
+  // HOD specific fields
+  employee_id?: string;
+  phone?: string;
+  department_id?: number;
+  designation?: string;
+  experience_years?: number;
+  specialization?: string;
+}
+
+interface Department {
+  department_id?: number;
+  id?: number;
+  name: string;
+  code: string;
 }
 
 const Register = () => {
   const { register, error: authError, loading } = useAuth();
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [departmentsLoading, setDepartmentsLoading] = useState(false);
+  const [departmentsError, setDepartmentsError] = useState('');
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   const [form, setForm] = useState({
     username: "",
     email: "",
     password: "",
     confirm_password: "",
-    role: "student", // default role
+    role: "hod", // default role for testing HOD fields
     first_name: "",
     last_name: "",
+    // HOD specific fields
+    employee_id: "",
+    phone: "",
+    department_id: 0,
+    designation: "HOD",
+    experience_years: 0,
+    specialization: "",
   });
   
+  // Fetch departments when component mounts
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      setDepartmentsLoading(true);
+      setDepartmentsError('');
+      try {
+        console.log('Fetching departments...');
+        const response = await fetch('http://localhost:8000/api/academics/departments/');
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log('Departments data:', data);
+        setDepartments(Array.isArray(data) ? data : data.results || []);
+      } catch (error) {
+        console.error('Failed to fetch departments:', error);
+        setDepartmentsError('Failed to load departments');
+      } finally {
+        setDepartmentsLoading(false);
+      }
+    };
+    fetchDepartments();
+  }, []);
+
   // Sync auth context error with local error state
   useEffect(() => {
     if (authError) {
@@ -37,8 +88,8 @@ const Register = () => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const toggleShowPassword = (): void => {
-    setShowPassword(prev => !prev);
+  const toggleShowPassword = () => {
+    setShowPassword(!showPassword);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,6 +100,14 @@ const Register = () => {
     if (!form.username.trim() || !form.email.trim() || !form.password.trim()) {
       setError("Please fill in all required fields");
       return;
+    }
+    
+    // HOD specific validation
+    if (form.role === 'hod') {
+      if (!form.employee_id.trim() || !form.phone.trim() || !form.specialization.trim() || form.department_id === 0) {
+        setError("Please fill in all HOD required fields: Employee ID, Phone, Department, and Specialization");
+        return;
+      }
     }
     
     // Email validation
@@ -78,15 +137,41 @@ const Register = () => {
       confirm_password: form.confirm_password,
       role: form.role,
       first_name: form.first_name,
-      last_name: form.last_name
+      last_name: form.last_name,
+      // Always include HOD fields (will be ignored for non-HOD roles)
+      employee_id: form.employee_id,
+      phone: form.phone,
+      department_id: form.department_id,
+      designation: form.designation,
+      experience_years: form.experience_years,
+      specialization: form.specialization
     };
     
     try {
-      await register(userData);
-      // No need to navigate here as AuthContext handles redirects
+      // For HOD registration, handle response differently
+      if (form.role === 'hod') {
+        const response = await fetch('http://localhost:8000/api/register/registration/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(userData),
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.message) {
+          setRegistrationSuccess(true);
+          setSuccessMessage(data.message);
+        } else {
+          setError(data.hod_fields?.[0] || data.error || 'Registration failed');
+        }
+      } else {
+        // Regular registration through AuthContext
+        await register(userData);
+      }
     } catch (err: any) {
       console.error("Registration error:", err);
-      // Additional error handling if needed
       if (!error) {
         setError(err.message || "Registration failed. Please try again.");
       }
@@ -284,7 +369,7 @@ const Register = () => {
           </label>
         </motion.div>
 
-        <div className="relative">
+        <motion.div className="relative" variants={itemVariants}>
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg className="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
               <path d="M10.394 2.08a1 1 0 00-.788 0l-7 3a1 1 0 000 1.84L5.25 8.051a.999.999 0 01.356-.257l4-1.714a1 1 0 11.788 1.838L7.667 9.088l1.94.831a1 1 0 00.787 0l7-3a1 1 0 000-1.838l-7-3zM3.31 9.397L5 10.12v4.102a8.969 8.969 0 00-1.05-.174 1 1 0 01-.89-.89 11.115 11.115 0 01.25-3.762zM9.3 16.573A9.026 9.026 0 007 14.935v-3.957l1.818.78a3 3 0 002.364 0l5.508-2.361a11.026 11.026 0 01.25 3.762 1 1 0 01-.89.89 8.968 8.968 0 00-5.35 2.524 1 1 0 01-1.4 0zM6 18a1 1 0 001-1v-2.065a8.935 8.935 0 00-2-.712V17a1 1 0 001 1z" />
@@ -297,12 +382,100 @@ const Register = () => {
             className="w-full pl-10 p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
           >
             <option value="student">Student</option>
-            <option value="HOD">Staff</option>
+            <option value="instructor">Instructor</option>
+            <option value="hod">HOD (Head of Department)</option>
             <option value="admin">Admin</option>
-            <option value="principal">Principal</option>
-
           </select>
-        </div>
+        </motion.div>
+
+
+
+        {/* HOD Specific Fields */}
+        {form.role === 'hod' && (
+          <div className="space-y-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <h3 className="text-lg font-semibold text-blue-800 mb-3">HOD Registration Details</h3>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="relative">
+                <input
+                  type="text"
+                  name="employee_id"
+                  placeholder="Employee ID"
+                  value={form.employee_id}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                  required
+                />
+              </div>
+              <div className="relative">
+                <input
+                  type="tel"
+                  name="phone"
+                  placeholder="Phone Number"
+                  value={form.phone}
+                  onChange={handleChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <select
+                name="department_id"
+                value={form.department_id}
+                onChange={handleChange}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                required
+                disabled={departmentsLoading}
+              >
+                <option value={0}>
+                  {departmentsLoading ? 'Loading departments...' :
+                   departmentsError ? 'Error loading departments' :
+                   'Select Department'}
+                </option>
+                {departments.map((dept) => (
+                  <option key={dept.department_id || dept.id} value={dept.department_id || dept.id}>
+                    {dept.name}
+                  </option>
+                ))}
+              </select>
+              {departmentsError && (
+                <p className="text-red-500 text-sm mt-1">{departmentsError}</p>
+              )}
+
+              <input
+                type="number"
+                name="experience_years"
+                placeholder="Years of Experience"
+                value={form.experience_years}
+                onChange={handleChange}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+                min="0"
+              />
+            </div>
+
+            <input
+              type="text"
+              name="specialization"
+              placeholder="Specialization/Field of Study"
+              value={form.specialization}
+              onChange={handleChange}
+              className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900"
+              required
+            />
+          </div>
+        )}
+
+        {registrationSuccess && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4"
+          >
+            <p className="text-center">{successMessage}</p>
+          </motion.div>
+        )}
 
         <motion.button
           type="submit"

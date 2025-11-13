@@ -6,7 +6,7 @@ import authService from "../api/authService";
 // Define types
 interface User {
   id: number;
-  role: "student" | "staff" | "admin" | "principal" | "director" | "instructor";
+  role: "student" | "staff" | "admin" | "principal" | "director" | "instructor" | "hod";
   username: string;
   email: string;
   [key: string]: any;
@@ -43,9 +43,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   
-  // ✅ Check for existing session on initial load
+  // ✅ Check for existing session on initial load (use sessionStorage for tab isolation)
   useEffect(() => {
-    const storedAuth = localStorage.getItem('auth');
+    const storedAuth = sessionStorage.getItem('auth') || localStorage.getItem('auth');
     if (storedAuth) {
       try {
         const authData: AuthData = JSON.parse(storedAuth);
@@ -54,9 +54,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (authData.access_token) {
           axios.defaults.headers.common['Authorization'] = `Token ${authData.access_token}`;
         }
+        
+        // Store in sessionStorage for this tab
+        sessionStorage.setItem('auth', storedAuth);
       } catch (err) {
         console.error('Error parsing stored auth data:', err);
         localStorage.removeItem('auth');
+        sessionStorage.removeItem('auth');
       }
     }
     setLoading(false);
@@ -89,14 +93,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('Auth data being stored from login:', authData);
       
       setCurrentUser(authData.user);
-      localStorage.setItem('auth', JSON.stringify(authData));
+      // Store in both localStorage and sessionStorage
+      const authString = JSON.stringify(authData);
+      localStorage.setItem('auth', authString);
+      sessionStorage.setItem('auth', authString);
       axios.defaults.headers.common['Authorization'] = `Token ${authData.access_token}`;
       
-      // ✅ Role-based redirect
-      if (authData.user.role === "admin" || authData.user.role === "principal" || authData.user.role === "director") {
+      // ✅ Role-based redirect (including superuser)
+      if (authData.user.role === "admin" || authData.user.role === "principal" || authData.user.role === "director" || authData.user.is_superuser) {
         navigate("/admin");
       } else if (authData.user.role === "instructor") {
         navigate("/teacher");
+      } else if (authData.user.role === "hod") {
+        navigate("/hod");
       } else if (authData.user.role === "staff") {
         navigate("/staff");
       } else if (authData.user.role === "student") {
@@ -118,21 +127,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(true);
       setError(null);
       const response = await authService.register(userData);
-      
+
       console.log('Registration response:', response);
-      
+
       if (!response.user) {
         throw new Error('No user data received from registration');
       }
-      
+
+      // Handle HOD registration (no auth tokens, just success message)
+      if (response.user.hod_request_pending) {
+        // Show success message and redirect to login
+        alert(response.message || 'HOD registration request submitted successfully. Please wait for admin approval.');
+        navigate("/login");
+        return;
+      }
+
       const authData: AuthData = {
         user: response.user,
         access_token: response.access_token,
         refresh_token: response.refresh_token
       };
-      
+
       console.log('Auth data being stored:', authData);
-      
+
       setCurrentUser(authData.user);
       localStorage.setItem('auth', JSON.stringify(authData));
       axios.defaults.headers.common['Authorization'] = `Token ${authData.access_token}`;
@@ -163,7 +180,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   
   const logout = () => {
     setCurrentUser(null);
-    authService.logout();
+    // Only clear sessionStorage for this tab, keep localStorage for other tabs
+    sessionStorage.removeItem('auth');
+    delete axios.defaults.headers.common['Authorization'];
     navigate("/login");
   };
 

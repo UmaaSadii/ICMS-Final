@@ -14,6 +14,7 @@ class StudentSerializer(serializers.ModelSerializer):
     courses = CourseSerializer(many=True, read_only=True)
     department_id = serializers.IntegerField(required=False, allow_null=True)
     semester_id = serializers.IntegerField(required=False, allow_null=True)
+    image = serializers.ImageField(required=False, allow_null=True)
 
     def get_id(self, obj):
         return obj.student_id
@@ -92,9 +93,6 @@ class StudentSerializer(serializers.ModelSerializer):
 
         validated_data.setdefault('phone', 'N/A')
         validated_data.setdefault('date_of_birth', date.today())
-
-        # ✅ User is already created by the ViewSet, so just use it
-        # The user is passed in validated_data['user']
 
         # ✅ Set student_id to registration_number for uniqueness
         validated_data['student_id'] = validated_data.get('registration_number')

@@ -8,6 +8,7 @@ import AdminDashboard from './pages/AdminDashboard';
 import StudentDashboard from './pages/StudentDashboard';
 import StudentProfile from './components/EnhancedStudentProfile';
 import TeacherDashboard from './pages/TeacherDashboard'; // Import TeacherDashboard
+import HODDashboard from './pages/HODDashboard'; // Import HODDashboard
 
 import ResultManagement from './components/pages/ResultManagement';
 import PrincipalManagement from './components/pages/PrincipalManagement';
@@ -17,6 +18,9 @@ import StudentLogin from  'pages/StudentLogin';
 import PrincipalDashboard from './pages/PrincipalDashboard';
 import EventManagement from './components/pages/EventManagement';
 import CreateEvent from "./components/pages/CreateEvent";
+import ActiveHODRecordsPage from './pages/ActiveHODRecordsPage';
+import ActiveHODDemo from './pages/ActiveHODDemo';
+import ResetPassword from './components/ResetPassword';
 
 //import TransportManagement from './components/pages/TransportManagement';
 
@@ -43,6 +47,8 @@ const getRedirectPath = () => {
       return '/staff';
     case 'instructor':
       return '/teacher';
+    case 'hod':
+      return '/hod';
     case 'admin':
       return '/admin';
     case 'principal':
@@ -57,14 +63,8 @@ const getRedirectPath = () => {
     <Routes>
       {/* Public routes */}
       <Route path="/login" element={currentUser ? <Navigate to={getRedirectPath()} /> : <AuthPage />} />
-      <Route
-  path="/register"
-  element={
-    currentUser?.role === "admin"
-      ? <RegisterForm /> 
-      : <Navigate to="/login" replace />
-  }
-/>
+      <Route path="/register" element={<RegisterForm />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
       
       {/* Redirect root to login if not authenticated */}
       <Route path="/" element={currentUser ? <Navigate to={getRedirectPath()} /> : <Navigate to="/login" />} />
@@ -93,7 +93,12 @@ const getRedirectPath = () => {
       <Route element={<ProtectedRoute allowedRoles={['instructor']} />}>
         <Route path="/teacher" element={<TeacherDashboard />} />
       </Route>
-      
+
+      <Route element={<ProtectedRoute allowedRoles={['hod']} />}>
+        <Route path="/hod" element={<HODDashboard />} />
+        <Route path="/hod-dashboard" element={<Navigate to="/hod" />} />
+      </Route>
+
       <Route element={<ProtectedRoute allowedRoles={['admin', 'principal', 'director']} />}>
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/admin-dashboard" element={<Navigate to="/admin" />} />
@@ -103,6 +108,8 @@ const getRedirectPath = () => {
 </Route>
        <Route element={<ProtectedRoute allowedRoles={['admin', 'principal']} />}>
   <Route path="/event-management" element={<EventManagement />} />
+  <Route path="/active-hod-records" element={<ActiveHODRecordsPage />} />
+  <Route path="/active-hod-demo" element={<ActiveHODDemo />} />
 </Route>
 
       {/* Result Management Routes */}

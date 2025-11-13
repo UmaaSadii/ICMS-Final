@@ -54,6 +54,8 @@ const DepartmentManagement: React.FC<DepartmentManagementProps> = ({ activeTab }
   const [selectedDepartments, setSelectedDepartments] = useState<Set<number>>(new Set());
   const [showBulkActions, setShowBulkActions] = useState<boolean>(false);
   const [generatingCourses, setGeneratingCourses] = useState<boolean>(false);
+  const [semesterFilter, setSemesterFilter] = useState<number | 'all'>('all');
+  const [departmentFilter, setDepartmentFilter] = useState<number | 'all'>('all');
 
   // Only admin can add or update departments
   const canModifyDepartment = isAdmin;
@@ -296,10 +298,34 @@ const DepartmentManagement: React.FC<DepartmentManagementProps> = ({ activeTab }
     }
   };
 
-  const filteredDepartments = departments.filter(dept =>
-    dept.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    dept.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredDepartments = departments.filter(dept => {
+    const matchesSearch = dept.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      dept.code.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesDepartmentFilter = departmentFilter === 'all' || dept.id === departmentFilter;
+    return matchesSearch && matchesDepartmentFilter;
+  });
+
+  const getFilteredSemesters = (departmentId: number, totalSemesters: number) => {
+    const allSemesters = Array.from({ length: totalSemesters }, (_, i) => i + 1);
+    if (semesterFilter === 'all') {
+      return allSemesters;
+    }
+    return allSemesters.filter(sem => sem === semesterFilter);
+  };
+
+  const clearFilters = () => {
+    setSemesterFilter('all');
+    setDepartmentFilter('all');
+    setSearchTerm('');
+  };
+
+  const getActiveFiltersCount = () => {
+    let count = 0;
+    if (semesterFilter !== 'all') count++;
+    if (departmentFilter !== 'all') count++;
+    if (searchTerm.trim()) count++;
+    return count;
+  };
 
   const handleSelectDepartment = (departmentId: number) => {
     setSelectedDepartments(prev => {
@@ -371,6 +397,77 @@ const DepartmentManagement: React.FC<DepartmentManagementProps> = ({ activeTab }
         </div>
       </div>
 
+      {/* Filter Controls */}
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+          <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4 flex-1">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Search departments..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+              />
+            </div>
+
+            {/* Department Filter */}
+            <div className="min-w-[200px]">
+              <select
+                value={departmentFilter}
+                onChange={(e) => setDepartmentFilter(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="all">All Departments</option>
+                {departments.map(dept => (
+                  <option key={dept.id} value={dept.id}>{dept.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Semester Filter */}
+            <div className="min-w-[180px]">
+              <select
+                value={semesterFilter}
+                onChange={(e) => setSemesterFilter(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="all">All Semesters</option>
+                {Array.from({ length: 8 }, (_, i) => i + 1).map(sem => (
+                  <option key={sem} value={sem}>Semester {sem}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Filter Actions */}
+          <div className="flex items-center space-x-3">
+            {getActiveFiltersCount() > 0 && (
+              <>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                  {getActiveFiltersCount()} filter{getActiveFiltersCount() > 1 ? 's' : ''} active
+                </span>
+                <button
+                  onClick={clearFilters}
+                  className="text-gray-500 hover:text-gray-700 text-sm font-medium flex items-center space-x-1"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span>Clear all</span>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
           <div className="flex items-center">
@@ -378,6 +475,32 @@ const DepartmentManagement: React.FC<DepartmentManagementProps> = ({ activeTab }
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <p className="text-red-800">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Results Summary */}
+      {!loading && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H9z" />
+              </svg>
+              <span className="text-blue-800 font-medium">
+                Showing {filteredDepartments.length} of {departments.length} departments
+                {semesterFilter !== 'all' && ` • Filtered to Semester ${semesterFilter}`}
+                {departmentFilter !== 'all' && ` • ${departments.find(d => d.id === departmentFilter)?.name || 'Selected Department'}`}
+              </span>
+            </div>
+            {getActiveFiltersCount() > 0 && (
+              <button
+                onClick={clearFilters}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              >
+                View All
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -518,10 +641,10 @@ const DepartmentManagement: React.FC<DepartmentManagementProps> = ({ activeTab }
                   </div>
                 </div>
 
-                {/* Display semesters based on department's num_semesters */}
+                {/* Display semesters based on department's num_semesters and filters */}
                 {isExpanded && (
                   <div className="space-y-4">
-                    {Array.from({ length: dept.num_semesters }, (_, i) => i + 1).map((semesterNumber) => {
+                    {getFilteredSemesters(dept.id, dept.num_semesters).map((semesterNumber) => {
                       const semesterCourses = getCoursesForSemester(semesterNumber, dept.id);
                       const totalCredits = semesterCourses.reduce((sum, course) => sum + course.credits, 0);
 

@@ -16,7 +16,7 @@ class Student(models.Model):
     )
     date_of_birth = models.DateField(null=True, blank=True)
     father_guardian = models.CharField(max_length=100, blank=True, null=True)
-    image = models.ImageField(upload_to="student_images/", null=True, blank=True, default="student_images/default.jpg")
+    image = models.ImageField(upload_to="student_images/", null=True, blank=True)
 
     # New fields for detailed form
     first_name = models.CharField(max_length=50, blank=True, null=True)
@@ -47,9 +47,28 @@ class Student(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.student_id and self.department:
+            # Generate department-based student ID
             dept_code = self.department.code.lower()
-            count = Student.objects.filter(department=self.department).count()
-            self.student_id = f"{dept_code}{str(count + 1).zfill(3)}"
+            
+            # Find the highest existing number for this department
+            existing_students = Student.objects.filter(
+                student_id__startswith=dept_code
+            ).values_list('student_id', flat=True)
+            
+            max_num = 0
+            for student_id in existing_students:
+                try:
+                    # Extract number from student_id (e.g., 'cs001' -> 1)
+                    num_part = student_id[len(dept_code):]
+                    num = int(num_part)
+                    max_num = max(max_num, num)
+                except (ValueError, IndexError):
+                    continue
+            
+            # Generate next ID
+            next_num = max_num + 1
+            self.student_id = f"{dept_code}{str(next_num).zfill(3)}"
+        
         super().save(*args, **kwargs)
 
     def get_next_semester(self):

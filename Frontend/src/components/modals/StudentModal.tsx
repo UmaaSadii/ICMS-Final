@@ -324,8 +324,19 @@ const StudentModal: React.FC<StudentModalProps> = ({ isOpen, onClose, studentId,
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setError('Please select a valid image file.');
+        return;
+      }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setError('Image file size must be less than 5MB.');
+        return;
+      }
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
+      setError(null); // Clear any previous errors
     }
   };
 
@@ -383,30 +394,59 @@ const StudentModal: React.FC<StudentModalProps> = ({ isOpen, onClose, studentId,
       }
 
       // Prepare data for submission
-      const dataToSend: any = {
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        email: formData.email,
-        phone: formData.phone,
-        date_of_birth: formData.date_of_birth,
-        registration_number: formData.registration_number,
-        department_id: parseInt(formData.department.toString(), 10),
-        guardian_name: formData.guardian_name || null,
-        guardian_contact: formData.guardian_contact || null,
-        address: formData.address || null,
-        gender: formData.gender,
-        blood_group: formData.blood_group || null,
-        batch: formData.batch || null,
-      };
+      let dataToSend: FormData | any;
+      
+      // Use FormData only if we have a new image file
+      if (imageFile && imageFile instanceof File) {
+        dataToSend = new FormData();
+        
+        // Add all form fields
+        dataToSend.append('first_name', formData.first_name);
+        dataToSend.append('last_name', formData.last_name);
+        dataToSend.append('email', formData.email);
+        dataToSend.append('phone', formData.phone);
+        dataToSend.append('date_of_birth', formData.date_of_birth);
+        dataToSend.append('registration_number', formData.registration_number);
+        dataToSend.append('department_id', formData.department.toString());
+        
+        if (formData.guardian_name) dataToSend.append('guardian_name', formData.guardian_name);
+        if (formData.guardian_contact) dataToSend.append('guardian_contact', formData.guardian_contact);
+        if (formData.address) dataToSend.append('address', formData.address);
+        dataToSend.append('gender', formData.gender);
+        if (formData.blood_group) dataToSend.append('blood_group', formData.blood_group);
+        if (formData.batch) dataToSend.append('batch', formData.batch);
 
-      // Add password only for new students
-      if (!studentId && formData.password.trim()) {
-        dataToSend.password = formData.password;
-      }
+        // Add password only for new students
+        if (!studentId && formData.password.trim()) {
+          dataToSend.append('password', formData.password);
+        }
 
-      // Add semester if selected
-      if (formData.semester && formData.semester !== 0) {
-        dataToSend.semester_id = parseInt(formData.semester.toString(), 10);
+        // Add semester if selected
+        if (formData.semester && formData.semester !== 0) {
+          dataToSend.append('semester_id', formData.semester.toString());
+        }
+        
+        // Add the new image file
+        dataToSend.append('image', imageFile);
+      } else {
+        // Use regular JSON data when no image is being uploaded
+        dataToSend = {
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          email: formData.email,
+          phone: formData.phone,
+          date_of_birth: formData.date_of_birth,
+          registration_number: formData.registration_number,
+          department_id: formData.department,
+          gender: formData.gender,
+          ...(formData.guardian_name && { guardian_name: formData.guardian_name }),
+          ...(formData.guardian_contact && { guardian_contact: formData.guardian_contact }),
+          ...(formData.address && { address: formData.address }),
+          ...(formData.blood_group && { blood_group: formData.blood_group }),
+          ...(formData.batch && { batch: formData.batch }),
+          ...(!studentId && formData.password.trim() && { password: formData.password }),
+          ...(formData.semester && formData.semester !== 0 && { semester_id: formData.semester })
+        };
       }
 
       console.log('Form data before submission:', formData);
@@ -414,25 +454,53 @@ const StudentModal: React.FC<StudentModalProps> = ({ isOpen, onClose, studentId,
 
       let response;
       if (studentId) {
-        response = await studentService.updateStudent(studentId, dataToSend);
+        // For updates, handle image separately if present
+        if (imageFile && imageFile instanceof File) {
+          // First update student data without image
+          const studentDataWithoutImage = {
+            first_name: formData.first_name,
+            last_name: formData.last_name,
+            email: formData.email,
+            phone: formData.phone,
+            date_of_birth: formData.date_of_birth,
+            registration_number: formData.registration_number,
+            department_id: formData.department,
+            gender: formData.gender,
+            ...(formData.guardian_name && { guardian_name: formData.guardian_name }),
+            ...(formData.guardian_contact && { guardian_contact: formData.guardian_contact }),
+            ...(formData.address && { address: formData.address }),
+            ...(formData.blood_group && { blood_group: formData.blood_group }),
+            ...(formData.batch && { batch: formData.batch }),
+            ...(formData.semester && formData.semester !== 0 && { semester_id: formData.semester })
+          };
+          
+          response = await studentService.updateStudent(studentId, studentDataWithoutImage);
+          
+          // Then upload image separately
+          try {
+            const imageFormData = new FormData();
+            imageFormData.append('image', imageFile);
+            await studentService.uploadStudentImage(studentId, imageFormData);
+          } catch (imageError) {
+            console.warn('Image upload failed, but student data was updated:', imageError);
+            // Don't fail the entire operation if image upload fails
+          }
+        } else {
+          // Update without image
+          response = await studentService.updateStudent(studentId, dataToSend);
+        }
       } else {
         response = await studentService.createStudent(dataToSend);
       }
 
       console.log('API Response:', response);
 
-      // Handle image upload if there's an image file
-      if (imageFile && (response.data.id || response.data.student_id)) {
-        const studentId = response.data.id || response.data.student_id;
-        const imageFormData = new FormData();
-        imageFormData.append('image', imageFile);
-        await studentService.uploadStudentImage(studentId, imageFormData);
-        const updatedStudentResponse = await studentService.getStudentById(studentId);
-        if (updatedStudentResponse.data.image) {
-          setImagePreview(updatedStudentResponse.data.image);
-        }
+      // Update image preview if response contains image URL
+      if (response.data && (response.data.image || response.data.student?.image)) {
+        const imageUrl = response.data.image || response.data.student?.image;
+        setImagePreview(imageUrl);
       }
-
+      
       onSuccess();
       onClose();
     } catch (error: any) {

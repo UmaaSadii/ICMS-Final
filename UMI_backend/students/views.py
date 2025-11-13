@@ -1,9 +1,10 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view
+from django.db.models import Count
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
 from django.contrib.auth import get_user_model
@@ -22,6 +23,7 @@ class StudentViewSet(viewsets.ModelViewSet):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
     permission_classes = [IsStaffOrAdmin]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['department', 'semester']
     lookup_field = 'student_id'
@@ -50,35 +52,59 @@ class StudentViewSet(viewsets.ModelViewSet):
         try:
             print(f"StudentViewSet create - Request data: {request.data}")
 
+            # Initialize student_data first
+            student_data = request.data.copy()
+            student_data.pop('password', None)  # Remove password from student data
+
             first_name = request.data.get("first_name")
             last_name = request.data.get("last_name")
             email = request.data.get("email")
-            registration_number = request.data.get("registration_number")
             password = request.data.get("password")
+            department_id = request.data.get("department_id") or request.data.get("department")
 
-            # Check if user already exists
-            if User.objects.filter(username=registration_number).exists():
-                return Response({"error": "User with this registration number already exists"}, status=status.HTTP_400_BAD_REQUEST)
+            # Set the name field from first_name and last_name
+            if first_name and last_name:
+                student_data['name'] = f"{first_name} {last_name}"
 
-            # Check if student already exists
-            if Student.objects.filter(student_id=registration_number).exists():
-                return Response({"error": "Student with this registration number already exists"}, status=status.HTTP_400_BAD_REQUEST)
+            # Check if user already exists by email
+            if User.objects.filter(email=email).exists():
+                return Response({"error": "User with this email already exists"}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Create linked User
+            # Get department for student ID generation
+            from academics.models import Department
+            try:
+                department = Department.objects.get(department_id=department_id)
+                # Ensure department is set in student_data
+                student_data['department'] = department.department_id
+            except Department.DoesNotExist:
+                return Response({"error": "Department not found"}, status=status.HTTP_400_BAD_REQUEST)
+            
+            serializer = self.get_serializer(data=student_data)
+            serializer.is_valid(raise_exception=True)
+            student = serializer.save()  # This will auto-generate student_id
+            
+            # Handle image upload after student creation
+            if 'image' in request.FILES:
+                student.image = request.FILES['image']
+                student.save(update_fields=['image'])
+            
+            # Create linked User with student_id as username
             user = User.objects.create_user(
-                username=registration_number,
+                username=student.student_id,
                 email=email,
                 password=password,
                 first_name=first_name,
                 last_name=last_name,
             )
+            
+            # Link user to student
+            student.user = user
+            student.save()
 
-            student_data = request.data.copy()
-            student_data["user"] = user.id
-
-            serializer = self.get_serializer(data=student_data)
-            serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer)
+            # Refresh from database to get updated image URL
+            student.refresh_from_db()
+            # Return updated student data
+            serializer = self.get_serializer(student)
 
             return Response(
                 {
@@ -96,6 +122,12 @@ class StudentViewSet(viewsets.ModelViewSet):
         print(f"StudentViewSet update - Request data: {request.data}")
         print(f"Request content type: {request.content_type}")
         try:
+            # Handle image upload in update
+            if 'image' in request.FILES:
+                instance = self.get_object()
+                instance.image = request.FILES['image']
+                instance.save(update_fields=['image'])
+            
             return super().update(request, *args, **kwargs)
         except Exception as e:
             print(f"StudentViewSet update - Validation error: {e}")
@@ -140,6 +172,9 @@ class StudentViewSet(viewsets.ModelViewSet):
     # ✅ Delete student
     def destroy(self, request, *args, **kwargs):
         try:
+            student_id = kwargs.get('student_id')
+            if not student_id or student_id.strip() == '':
+                return Response({"error": "Student ID is required for deletion"}, status=status.HTTP_400_BAD_REQUEST)
             return super().destroy(request, *args, **kwargs)
         except Exception as e:
             return Response({"error": f"Cannot delete student: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
@@ -172,6 +207,48 @@ class StudentViewSet(viewsets.ModelViewSet):
             return Response({"error": "Student not found"}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({"error": f"Failed to fetch courses: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+    @action(detail=False, methods=['get'], url_path='department-stats')
+    def department_statistics(self, request):
+        """Get student count by department"""
+        try:
+            from academics.models import Department
+            
+            # Get department statistics
+            dept_stats = Student.objects.filter(
+                department__isnull=False
+            ).values(
+                'department__department_id',
+                'department__name', 
+                'department__code'
+            ).annotate(
+                student_count=Count('student_id')
+            ).order_by('department__name')
+            
+            # Format response
+            statistics = []
+            for stat in dept_stats:
+                statistics.append({
+                    'department_id': stat['department__department_id'],
+                    'department_name': stat['department__name'],
+                    'department_code': stat['department__code'],
+                    'student_count': stat['student_count']
+                })
+            
+            total_students = sum(stat['student_count'] for stat in statistics)
+            
+            return Response({
+                'success': True,
+                'statistics': statistics,
+                'total_students': total_students,
+                'total_departments': len(statistics)
+            })
+            
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # ✅ Student Profile (for logged-in student)
@@ -190,6 +267,28 @@ class StudentProfileView(APIView):
 
 
 # ✅ Dashboard View
+@api_view(['GET'])
+def student_department_filter(request):
+    """Filter students by department"""
+    try:
+        department_id = request.GET.get('department_id')
+        if department_id:
+            students = Student.objects.filter(department__department_id=department_id)
+        else:
+            students = Student.objects.all()
+        
+        serializer = StudentSerializer(students, many=True)
+        return Response({
+            'success': True,
+            'students': serializer.data,
+            'count': students.count()
+        })
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 @api_view(['GET'])
 def StudentDashboardView(request, student_id):
     try:

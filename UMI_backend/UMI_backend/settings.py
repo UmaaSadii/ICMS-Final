@@ -30,7 +30,7 @@ SECRET_KEY = 'django-insecure-125w!j+j$avuorw++yu)oi365!z0-)tz_daj3ki16^p_)5ancj
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '0.0.0.0', '*.ngrok.io']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '0.0.0.0', '*.ngrok.io', 'testserver']
 
 
 # Application definition
@@ -50,10 +50,11 @@ INSTALLED_APPS = [
     'students',
     'academics',
     'instructors',
-    'messaging',
+    'hods',
     'monitoring',
     'announcement',
     'events',
+    'admin_management',
 ]
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
@@ -124,10 +125,19 @@ WSGI_APPLICATION = 'UMI_backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'icms_db',
+        'USER': 'icms_user',
+        'PASSWORD': '12345',
+        'HOST': 'localhost',   # or your server IP
+        'PORT': '5432',
+        'OPTIONS': {
+            'options': '-c search_path=public'
+        },
+
     }
 }
+
 
 
 # Password validation

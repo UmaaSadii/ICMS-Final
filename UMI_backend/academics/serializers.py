@@ -11,6 +11,36 @@ class DepartmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Department
         fields = ['id', 'name', 'code', 'description', 'num_semesters']
+    
+    def validate_code(self, value):
+        """Ensure department code is unique and properly formatted"""
+        if not value:
+            raise serializers.ValidationError("Department code is required.")
+        
+        # Check for uniqueness during creation
+        if self.instance is None:  # Creating new department
+            if Department.objects.filter(code=value).exists():
+                raise serializers.ValidationError("Department with this code already exists.")
+        
+        return value.upper()  # Convert to uppercase
+    
+    def validate_name(self, value):
+        """Ensure department name is unique"""
+        if not value:
+            raise serializers.ValidationError("Department name is required.")
+        
+        # Check for uniqueness during creation
+        if self.instance is None:  # Creating new department
+            if Department.objects.filter(name=value).exists():
+                raise serializers.ValidationError("Department with this name already exists.")
+        
+        return value
+    
+    def validate_num_semesters(self, value):
+        """Validate number of semesters"""
+        if value < 1 or value > 12:
+            raise serializers.ValidationError("Number of semesters must be between 1 and 12.")
+        return value
 
 
 # ===========================
