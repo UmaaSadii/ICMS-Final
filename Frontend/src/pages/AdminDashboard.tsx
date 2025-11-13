@@ -12,10 +12,7 @@ import CourseManagement from '../components/pages/CourseManagement';
 import TeacherManagement from '../components/pages/TeacherManagement';
 import EventManagement from '../components/pages/EventManagement';
 import HODManagement from '../components/pages/HODManagement';
-<<<<<<< HEAD
-=======
-import MessagingSystem from '../components/messaging/MessagingSystem';
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
+
 import SystemHealthWidget from '../components/dashboard/SystemHealthWidget';
 import NotificationPanel from '../components/dashboard/NotificationPanel';
 import QuickActions from '../components/dashboard/QuickActions';
@@ -24,18 +21,8 @@ import ActivityFeed from '../components/dashboard/ActivityFeed';
 import CalendarWidget from '../components/dashboard/CalendarWidget';
 import PrincipalManagement from '../components/pages/PrincipalManagement';
 import AdminAttendanceManagement from '../components/attendance/AdminAttendanceManagement';
-<<<<<<< HEAD
-import AdminManagement from '../components/pages/AdminManagement';
 import WeatherWidget from '../components/dashboard/WeatherWidget';
 import { jsPDF } from 'jspdf';
-import HODRequestsManager from '../../HODRequestsManager';
-=======
-
-import WeatherWidget from '../components/dashboard/WeatherWidget';
-import { jsPDF } from 'jspdf';
-import HODRequestsManager from '../../HODRequestsManager';
-
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -90,11 +77,7 @@ ChartJS.register(
   Legend
 );
 
-<<<<<<< HEAD
-type TabId = 'dashboard' | 'students' |'principal'| 'instructors' | 'departments' | 'courses' | 'results' | 'attendance' | 'events' | 'announcements'| 'hod' | 'admin-management';
-=======
-type TabId = 'dashboard' | 'students' |'principal'| 'instructors' | 'departments' | 'courses' | 'results' | 'attendance' | 'events' |'announcements'| 'hod';
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
+type TabId = 'dashboard' | 'students' |'principal'| 'instructors' | 'departments' | 'courses' | 'results' | 'attendance' | 'events' | 'announcements'| 'hod';
 interface HODRequest {
   id: number;
   name: string;
@@ -183,32 +166,6 @@ const AdminDashboard = () => {
   const [editFormData, setEditFormData] = useState<any>({});
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-
-  // Get auth token
-  const authData = localStorage.getItem('auth');
-  const token = authData ? JSON.parse(authData).access_token || JSON.parse(authData).token : null;
-
-// HOD requests state
-  const [hodRequests, setHodRequests] = useState({
-    pending: 0,
-    approved: 0,
-    rejected: 0,
-    total: 0
-  });
-  const [hodRequestsList, setHodRequestsList] = useState<HODRequest[]>([]);
-  const [hodRequestsLoading, setHodRequestsLoading] = useState(false);
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
-  const [hodRecords, setHodRecords] = useState<any[]>([]);
-  const [hodRecordsLoading, setHodRecordsLoading] = useState(false);
-  const [retiredHods, setRetiredHods] = useState<any[]>([]);
-  const [retiredHodsLoading, setRetiredHodsLoading] = useState(false);
-  const [hodView, setHodView] = useState<'requests' | 'records' | 'retired'>('requests');
-  const [selectedHodForView, setSelectedHodForView] = useState<any>(null);
-  const [selectedHodForEdit, setSelectedHodForEdit] = useState<any>(null);
-  const [showViewModal, setShowViewModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editFormData, setEditFormData] = useState<any>({});
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState<number | null>(null);
 
@@ -261,11 +218,7 @@ const AdminDashboard = () => {
           departmentService.getAllDepartments(),
           courseService.getAllCourses(),
           instructorService.getAllInstructors(),
-<<<<<<< HEAD
-          fetch('http://localhost:8000/api/hods/admin/requests/', {
-=======
           fetch('http://localhost:8000/api/register/admin/hod-requests/', {
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
             headers: {
               'Authorization': `Token ${token}`,
               'Content-Type': 'application/json'
@@ -763,11 +716,7 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
         return;
       }
       
-<<<<<<< HEAD
-      const response = await fetch('http://localhost:8000/api/hods/admin/requests/', {
-=======
       const response = await fetch('http://localhost:8000/api/register/admin/hod-requests/', {
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         headers: {
           'Authorization': `Token ${token}`,
           'Content-Type': 'application/json'
@@ -815,11 +764,7 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
   const handleHodRequestAction = async (requestId: number, action: string) => {
     const reason = action === 'reject' ? prompt('Rejection reason (optional):') : undefined;
     try {
-<<<<<<< HEAD
-      const response = await fetch(`http://localhost:8000/api/hods/admin/requests/${requestId}/action/`, {
-=======
       const response = await fetch(`http://localhost:8000/api/register/admin/hod-requests/${requestId}/action/`, {
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
@@ -845,20 +790,11 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
       { id: 'instructors', label: 'Instructors', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
       { id: 'principal', label: 'Principal', icon: 'M12 2l9 4v2H3V6l9-4zm0 6a9 9 0 00-9 9v5h18v-5a9 9 0 00-9-9z' },
       { id: 'hod', label: 'HOD', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z' },
-<<<<<<< HEAD
-      { id: 'admin-management', label: 'Admin', icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       { id: 'departments', label: 'Departments', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
       { id: 'results', label: 'Results', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
       { id: 'attendance', label: 'Attendance', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
       { id: 'announcements', label: 'Announcements', icon: 'M3 10v4a1 1 0 001 1h3l4 3V6l-4 3H4a1 1 0 00-1 1z' },
-      { id: 'events', label: 'Events', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-<<<<<<< HEAD
-
-=======
-      
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
+      { id: 'events', label: 'Events', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' }
     ];
     }, []);
      
@@ -1883,17 +1819,12 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                       <div>
                         <h4 className="text-2xl font-bold text-gray-900">{selectedHodForView.name}</h4>
                         <p className="text-lg text-gray-600">{selectedHodForView.designation}</p>
-<<<<<<< HEAD
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium mt-2 ${
                           selectedHodForView.status === 'retired' 
                             ? 'bg-orange-100 text-orange-800' 
                             : 'bg-green-100 text-green-800'
                         }`}>
                           {selectedHodForView.status === 'retired' ? '⏰ Retired HOD' : '✓ Active HOD'}
-=======
-                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 mt-2">
-                          ✓ Active HOD
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                         </span>
                       </div>
                     </div>
@@ -1928,7 +1859,6 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                             {selectedHodForView.hire_date ? new Date(selectedHodForView.hire_date).toLocaleDateString() : 'N/A'}
                           </p>
                         </div>
-<<<<<<< HEAD
                         {selectedHodForView.status === 'retired' && selectedHodForView.retired_date && (
                           <div>
                             <label className="block text-sm font-medium text-gray-700">Retired Date</label>
@@ -1937,8 +1867,6 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                             </p>
                           </div>
                         )}
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                       </div>
                     </div>
                   </div>
@@ -1988,39 +1916,24 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                   <form onSubmit={(e) => { e.preventDefault(); updateHodRecord(); }} className="space-y-4">
                     {/* Profile Image Upload */}
                     <div className="flex items-center space-x-6">
-<<<<<<< HEAD
-                      <div className="h-24 w-24 rounded-full bg-purple-100 flex items-center justify-center">
-=======
                       <div className="h-24 w-24 rounded-full bg-purple-100 flex items-center justify-center border-2 border-purple-200">
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                         {selectedImage ? (
                           <img src={URL.createObjectURL(selectedImage)} alt="Preview" className="h-24 w-24 rounded-full object-cover" />
                         ) : selectedHodForEdit.image ? (
                           <img src={selectedHodForEdit.image} alt={selectedHodForEdit.name} className="h-24 w-24 rounded-full object-cover" />
                         ) : (
-<<<<<<< HEAD
-                          <span className="text-3xl font-bold text-purple-600">{selectedHodForEdit.name?.charAt(0) || 'H'}</span>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Profile Image</label>
-=======
                           <span className="text-3xl font-bold text-purple-600">{editFormData.name?.charAt(0) || selectedHodForEdit.name?.charAt(0) || 'H'}</span>
                         )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Profile Image (Optional)</label>
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                         <input
                           type="file"
                           accept="image/*"
                           onChange={handleImageChange}
                           className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                         />
-<<<<<<< HEAD
-=======
                         <p className="text-xs text-gray-500 mt-1">Upload a new image to replace the current one</p>
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                       </div>
                     </div>
 
@@ -2101,11 +2014,7 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                         >
                           <option value="">Select Department</option>
                           {adminData.departments.map((dept) => (
-<<<<<<< HEAD
-                            <option key={dept.department_id || dept.id} value={dept.department_id || dept.id}>
-=======
                             <option key={dept.id} value={dept.id}>
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                               {dept.name}
                             </option>
                           ))}
@@ -2116,10 +2025,6 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                     <div className="flex justify-end space-x-3 mt-6">
                       <button
                         type="button"
-<<<<<<< HEAD
-                        onClick={() => setShowEditModal(false)}
-                        className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
-=======
                         onClick={() => {
                           setShowEditModal(false);
                           setSelectedHodForEdit(null);
@@ -2127,17 +2032,11 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                           setSelectedImage(null);
                         }}
                         className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors font-medium"
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                       >
                         Cancel
                       </button>
                       <button
                         type="submit"
-<<<<<<< HEAD
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        Update Profile
-=======
                         disabled={!editFormData.name || !editFormData.email || isUpdating}
                         className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center space-x-2"
                       >
@@ -2152,7 +2051,6 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                           </svg>
                         )}
                         <span>{isUpdating ? 'Updating...' : 'Update Profile'}</span>
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                       </button>
                     </div>
                   </form>
@@ -2178,11 +2076,7 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-<<<<<<< HEAD
-              View Retired HODs
-=======
               Retired HODs
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
             </button>
             <button
               onClick={addApprovedHodsToActive}
@@ -2191,11 +2085,7 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-<<<<<<< HEAD
-              Add Approved HODs
-=======
               Activate Approved HODs
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
             </button>
             <button
               onClick={loadHodRecords}
@@ -2222,11 +2112,7 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
               <p className="mt-2">No active HOD records found.</p>
-<<<<<<< HEAD
-              <p className="text-sm text-gray-400 mt-1">Approve HOD registration requests to create HOD records.</p>
-=======
               <p className="text-sm text-gray-400 mt-1">Approve HOD registration requests to activate them as HODs.</p>
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
             </div>
           ) : (
             hodRecords.map((hod) => (
@@ -2244,11 +2130,7 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                       <h3 className="text-lg font-semibold text-gray-900">{hod.name}</h3>
                       <p className="text-sm text-gray-600">{hod.designation || 'Head of Department'}</p>
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-1">
-<<<<<<< HEAD
-                        Active
-=======
                         ✓ Active HOD
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                       </span>
                     </div>
                   </div>
@@ -2274,15 +2156,6 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                     </div>
                   </div>
 
-<<<<<<< HEAD
-                  <div className="mt-4 flex space-x-2">
-                    <button
-                      onClick={() => viewHodDetails(hod.id)}
-                      className="flex-1 bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 text-sm font-medium transition-colors"
-                      title="View HOD details"
-                    >
-                      <div className="flex items-center justify-center space-x-1">
-=======
                   <div className="mt-6 space-y-2">
                     {/* Primary Actions Row */}
                     <div className="flex space-x-2">
@@ -2327,40 +2200,11 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                       title="View detailed HOD information"
                     >
                       <div className="flex items-center justify-center space-x-2">
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                         </svg>
-<<<<<<< HEAD
-                        <span>View</span>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => editHodRecord(hod.id)}
-                      className="flex-1 bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
-                      title="Edit HOD profile"
-                    >
-                      <div className="flex items-center justify-center space-x-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
-                        <span>Edit</span>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => retireHodRecord(hod.id, hod.name)}
-                      className="flex-1 bg-orange-600 text-white px-3 py-2 rounded-lg hover:bg-orange-700 text-sm font-medium transition-colors"
-                      title="Retire HOD"
-                    >
-                      <div className="flex items-center justify-center space-x-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <span>Retire</span>
-=======
                         <span>View Full Details</span>
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                       </div>
                     </button>
                   </div>
@@ -2610,24 +2454,6 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
   const loadHodRecords = async () => {
     setHodRecordsLoading(true);
     try {
-<<<<<<< HEAD
-      // Load actual HOD records from database
-      const response = await fetch('http://localhost:8000/api/hods/admin/records/', {
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('HOD records response:', data);
-        setHodRecords(data.data || []);
-      } else {
-        console.error('Failed to load HOD records:', response.status, response.statusText);
-        setHodRecords([]);
-      }
-=======
       if (!token) {
         console.error('No auth token found for HOD records');
         setHodRecords([]);
@@ -2695,8 +2521,6 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
       }
       
       setHodRecords(hodData);
-      
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
     } catch (error) {
       console.error('Error loading HOD records:', error);
       setHodRecords([]);
@@ -2710,11 +2534,6 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
     
     if (hod) {
       setSelectedHodForEdit(hod);
-<<<<<<< HEAD
-      setEditFormData({ ...hod });
-      setSelectedImage(null);
-      setShowEditModal(true);
-=======
       // Properly initialize form data with all fields
       setEditFormData({
         name: hod.name || '',
@@ -2736,7 +2555,6 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
         phone: hod.phone,
         specialization: hod.specialization
       });
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
     }
   };
 
@@ -2758,65 +2576,6 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
   const updateHodRecord = async () => {
     if (!selectedHodForEdit) return;
     
-<<<<<<< HEAD
-    try {
-      const formData = new FormData();
-      
-      // Only append non-empty values
-      Object.keys(editFormData).forEach(key => {
-        const value = editFormData[key];
-        if (key !== 'image' && value !== null && value !== undefined && value !== '') {
-          // Handle department object
-          if (key === 'department' && typeof value === 'object' && value.id) {
-            formData.append('department', value.id.toString());
-          } else if (key !== 'department') {
-            formData.append(key, value.toString());
-          }
-        }
-      });
-      
-      if (selectedImage) {
-        formData.append('image', selectedImage);
-      }
-      
-      const response = await fetch(`http://localhost:8000/api/hods/admin/records/${selectedHodForEdit.id}/`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Token ${token}`,
-        },
-        body: formData
-      });
-      
-      if (response.ok) {
-        const responseData = await response.json();
-        
-        // Update the local state immediately with the new data
-        if (responseData.data) {
-          setHodRecords(prevRecords => 
-            prevRecords.map(record => 
-              record.id === selectedHodForEdit.id 
-                ? { ...record, ...responseData.data }
-                : record
-            )
-          );
-        }
-        
-        // Also refresh the full list to ensure consistency
-        await loadHodRecords();
-        setShowEditModal(false);
-        setSelectedHodForEdit(null);
-        setSelectedImage(null);
-        alert('HOD profile updated successfully!');
-      } else {
-        const errorData = await response.json();
-        console.error('Update error:', errorData);
-        alert(`Failed to update HOD profile: ${errorData.error || 'Unknown error'}`);
-      }
-    } catch (error) {
-      console.error('Error updating HOD:', error);
-      alert('Error updating HOD profile.');
-    }
-=======
     setIsUpdating(true);
     
     const updateData = {
@@ -2842,16 +2601,33 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
     setSelectedImage(null);
     setIsUpdating(false);
     alert('HOD profile updated successfully!');
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
+  };
+
+  const calculateServicePeriod = (hireDate: string, retiredDate: string) => {
+    if (!hireDate) return 'N/A';
+    
+    const hire = new Date(hireDate);
+    const retired = new Date(retiredDate || new Date());
+    
+    const diffTime = Math.abs(retired.getTime() - hire.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    const years = Math.floor(diffDays / 365);
+    const months = Math.floor((diffDays % 365) / 30);
+    const days = diffDays % 30;
+    
+    if (years > 0) {
+      return `${years} year${years > 1 ? 's' : ''}, ${months} month${months > 1 ? 's' : ''}`;
+    } else if (months > 0) {
+      return `${months} month${months > 1 ? 's' : ''}, ${days} day${days > 1 ? 's' : ''}`;
+    } else {
+      return `${days} day${days > 1 ? 's' : ''}`;
+    }
   };
 
   const addApprovedHodsToActive = async () => {
     try {
-<<<<<<< HEAD
-      const response = await fetch('http://localhost:8000/api/hods/admin/create-from-request/', {
-=======
       const response = await fetch('http://localhost:8000/api/register/admin/create-hod-from-request/', {
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
@@ -2874,12 +2650,6 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
   };
 
   const deleteHodRecord = async (hodId: number, hodName: string) => {
-<<<<<<< HEAD
-    if (window.confirm(`Are you sure you want to delete ${hodName}? This action cannot be undone.`)) {
-      try {
-        const response = await fetch(`http://localhost:8000/api/hods/admin/records/${hodId}/`, {
-          method: 'DELETE',
-=======
     if (window.confirm(`Are you sure you want to remove ${hodName} from active HODs? This will deactivate their HOD status but preserve their record.`)) {
       setIsDeleting(hodId);
       try {
@@ -3028,7 +2798,6 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
       try {
         console.log('Fetching rejected HOD requests...');
         const response = await fetch('http://localhost:8000/api/register/admin/hod-requests/', {
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
           headers: {
             'Authorization': `Token ${token}`,
             'Content-Type': 'application/json'
@@ -3036,38 +2805,6 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
         });
         
         if (response.ok) {
-<<<<<<< HEAD
-          loadHodRecords();
-          alert(`${hodName} has been deleted successfully.`);
-        } else if (response.status === 403) {
-          alert('Permission denied. You do not have permission to delete HOD records.');
-        } else {
-          alert(`Failed to delete HOD record. Status: ${response.status}`);
-        }
-      } catch (error) {
-        console.error('Error deleting HOD:', error);
-        alert('Network error occurred while deleting HOD record.');
-      }
-    }
-  };
-
-  const loadRetiredHods = async () => {
-    setRetiredHodsLoading(true);
-    try {
-      const response = await fetch('http://localhost:8000/api/hods/admin/retired/', {
-        headers: {
-          'Authorization': `Token ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setRetiredHods(data.data || []);
-      } else {
-        setRetiredHods([]);
-      }
-=======
           const data = await response.json();
           const allRequests = data.requests || data.data || [];
           const rejectedRequests = allRequests.filter((req: any) => req.status === 'rejected');
@@ -3105,8 +2842,6 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
 
       console.log('Final processed retired HODs:', processedRetiredHods);
       setRetiredHods(processedRetiredHods);
-      
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
     } catch (error) {
       console.error('Error loading retired HODs:', error);
       setRetiredHods([]);
@@ -3115,7 +2850,6 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
     }
   };
 
-<<<<<<< HEAD
   const viewRetiredHodDetails = (hodId: number) => {
     const hod = retiredHods.find(h => h.id === hodId);
     
@@ -3147,27 +2881,6 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
         console.error('Error retiring HOD:', error);
         alert('Network error occurred while retiring HOD.');
       }
-=======
-  const calculateServicePeriod = (hireDate: string, retiredDate: string) => {
-    if (!hireDate) return 'N/A';
-    
-    const hire = new Date(hireDate);
-    const retired = new Date(retiredDate || new Date());
-    
-    const diffTime = Math.abs(retired.getTime() - hire.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    const years = Math.floor(diffDays / 365);
-    const months = Math.floor((diffDays % 365) / 30);
-    const days = diffDays % 30;
-    
-    if (years > 0) {
-      return `${years} year${years > 1 ? 's' : ''}, ${months} month${months > 1 ? 's' : ''}`;
-    } else if (months > 0) {
-      return `${months} month${months > 1 ? 's' : ''}, ${days} day${days > 1 ? 's' : ''}`;
-    } else {
-      return `${days} day${days > 1 ? 's' : ''}`;
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
     }
   };
 
@@ -3175,19 +2888,6 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-<<<<<<< HEAD
-          <h3 className="text-lg font-semibold text-gray-900">Retired HODs</h3>
-          <button
-            onClick={loadRetiredHods}
-            disabled={retiredHodsLoading}
-            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            <svg className={`w-4 h-4 ${retiredHodsLoading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-            Refresh
-          </button>
-=======
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Retired & Deactivated HODs</h3>
             <p className="text-sm text-gray-600 mt-1">HODs who were previously active and then retired or deactivated</p>
@@ -3204,89 +2904,17 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
               Refresh
             </button>
           </div>
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
           {retiredHodsLoading ? (
             <div className="col-span-full text-center py-8">
-<<<<<<< HEAD
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="text-gray-600 mt-2">Loading retired HODs...</p>
-=======
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto"></div>
               <p className="text-gray-600 mt-2">Loading retired HOD records...</p>
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
             </div>
           ) : retiredHods.length === 0 ? (
             <div className="col-span-full text-center py-8 text-gray-500">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-<<<<<<< HEAD
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <p className="mt-2">No retired HODs found.</p>
-            </div>
-          ) : (
-            retiredHods.map((hod) => (
-              <div key={hod.id} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200">
-                <div className="p-6">
-                  <div className="flex items-center space-x-4 mb-4">
-                    <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center">
-                      {hod.image ? (
-                        <img src={hod.image} alt={hod.name} className="h-16 w-16 rounded-full object-cover" />
-                      ) : (
-                        <span className="text-2xl font-bold text-gray-600">{hod.name?.charAt(0) || 'H'}</span>
-                      )}
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-900">{hod.name}</h3>
-                      <p className="text-sm text-gray-600">{hod.designation || 'Head of Department'}</p>
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800 mt-1">
-                        Retired
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                      <span>{hod.email}</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                      <span>{hod.department?.name || hod.department_name || 'N/A'}</span>
-                    </div>
-                    <div className="flex items-center text-sm text-gray-600">
-                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span>Retired: {hod.retired_date ? new Date(hod.retired_date).toLocaleDateString() : 'N/A'}</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4">
-                    <button
-                      onClick={() => viewRetiredHodDetails(hod.id)}
-                      className="w-full bg-gray-600 text-white px-3 py-2 rounded-lg hover:bg-gray-700 text-sm font-medium transition-colors"
-                      title="View retired HOD details"
-                    >
-                      <div className="flex items-center justify-center space-x-1">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        <span>View Profile</span>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
-=======
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
               <p className="mt-2">No retired HOD records found.</p>
@@ -3366,22 +2994,11 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
                 </div>
               );
             })
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
           )}
         </div>
       </div>
     );
   };
-
-<<<<<<< HEAD
-  // Load HOD data when tab is active
-  useEffect(() => {
-    if (activeTab === 'hod') {
-      loadHodRequests();
-      loadHodRecords();
-      loadRetiredHods();
-    }
-  }, [activeTab]);
 
   // Close profile dropdown when clicking outside
   useEffect(() => {
@@ -3400,488 +3017,298 @@ const handleCreateAnnouncement = async (e: React.FormEvent) => {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: globalScrollbarStyle }} />
-      <div className="flex min-h-screen w-full bg-[#E8EFF8]">
-=======
-  // Main render
-  return (
-    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
-      {renderTabs()}
-      <div className="flex-1">
-        {/* Header */}
-        <header className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-700 p-6 shadow-xl border-b border-white/20">
-          <motion.div
-            className="flex items-center justify-between"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-          >
-            <div className="flex items-center space-x-4">
-<<<<<<< HEAD
-              <div className="relative profile-dropdown" style={{ position: 'relative' }}>
-                <button
-                  onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-                  className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white shadow-lg hover:border-indigo-200 transition-colors duration-200 overflow-hidden"
-                >
-                  {adminProfile?.image ? (
-                    <img
-                      src={adminProfile.image}
-                      alt="Admin Profile"
-                      className="h-12 w-12 rounded-full object-cover"
-                      onError={(e) => {
-                        console.log('Admin image failed to load:', adminProfile.image);
-                        e.currentTarget.style.display = 'none';
-                        const parent = e.currentTarget.parentElement;
-                        if (parent) {
-                          parent.innerHTML = `<span class="text-lg font-semibold text-white">${(adminProfile?.name || currentUser?.name || 'Admin').charAt(0).toUpperCase()}</span>`;
-                        }
-                      }}
-                    />
-                  ) : (
-                    <span className="text-lg font-semibold text-white">
-                      {(adminProfile?.name || currentUser?.name || 'Admin').charAt(0).toUpperCase()}
-                    </span>
-                  )}
-                </button>
-                <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-green-400 border-2 border-white rounded-full animate-pulse"></div>
-                
-                {showProfileDropdown && (
-                  <div 
-                    className="absolute left-0 mt-2 w-80 bg-white rounded-lg shadow-xl border border-gray-200"
-                    style={{ zIndex: 9999 }}
-                  >
-                    <div className="p-6">
-                      <div className="flex items-center space-x-4 mb-4">
-                        <div className="h-16 w-16 rounded-full bg-indigo-500 flex items-center justify-center overflow-hidden">
-                          {adminProfile?.image ? (
-                            <img
-                              src={adminProfile.image}
-                              alt="Admin Profile"
-                              className="h-16 w-16 rounded-full object-cover"
-                              onError={(e) => {
-                                const parent = e.currentTarget.parentElement;
-                                if (parent) {
-                                  parent.innerHTML = `<span class="text-2xl font-bold text-white">${(adminProfile?.name || currentUser?.name || 'Admin').charAt(0)}</span>`;
-                                }
-                              }}
-                            />
-                          ) : (
-                            <span className="text-2xl font-bold text-white">
-                              {(adminProfile?.name || currentUser?.name || 'Admin').charAt(0)}
-                            </span>
-                          )}
-                        </div>
-                        <div>
-                          <h3 className="text-lg font-semibold text-gray-900">{adminProfile?.name || currentUser?.name || 'Admin'}</h3>
-                          <p className="text-sm text-gray-600">System Administrator</p>
-                          <p className="text-sm text-gray-500">{adminProfile?.email || currentUser?.email || 'admin@university.edu'}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="border-t border-gray-200 pt-4">
-                        <div className="space-y-3">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Role:</span>
-                            <span className="font-medium text-gray-900">Administrator</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Access Level:</span>
-                            <span className="font-medium text-green-600">Full Access</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Last Login:</span>
-                            <span className="font-medium text-gray-900">{new Date().toLocaleDateString()}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Status:</span>
-                            <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              <span className="w-2 h-2 bg-green-400 rounded-full mr-1"></span>
-                              Active
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="border-t border-gray-200 pt-4 mt-4">
-                        <button
-                          onClick={() => {
-                            setShowProfileDropdown(false);
-                            logout();
-                          }}
-                          className="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                        >
-                          Sign Out
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-=======
-              <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
-                <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tabs.find(tab => tab.id === activeTab)?.icon || 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'} />
-                </svg>
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
+      <div className="flex min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
+        {renderTabs()}
+        <div className="flex-1">
+          {/* Header */}
+          <header className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-700 p-6 shadow-xl border-b border-white/20">
+            <motion.div
+              className="flex items-center justify-between"
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+            >
+              <div className="flex items-center space-x-4">
+                <div className="h-12 w-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/30">
+                  <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tabs.find(tab => tab.id === activeTab)?.icon || 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'} />
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-white">
+                    {activeTab === 'dashboard' ? 'Admin Dashboard' : 
+                     tabs.find(tab => tab.id === activeTab)?.label || 'Admin Dashboard'}
+                  </h1>
+                  <p className="text-purple-100 text-sm">
+                    {activeTab === 'dashboard' ? 'University Management System' :
+                     `Manage ${tabs.find(tab => tab.id === activeTab)?.label || 'System'}`}
+                  </p>
+                </div>
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">
-                  {activeTab === 'dashboard' ? 'Admin Dashboard' : 
-<<<<<<< HEAD
-                   activeTab === 'admin-management' ? 'Admin Management' :
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
-                   tabs.find(tab => tab.id === activeTab)?.label || 'Admin Dashboard'}
-                </h1>
-                <p className="text-purple-100 text-sm">
-                  {activeTab === 'dashboard' ? 'University Management System' :
-<<<<<<< HEAD
-                   activeTab === 'admin-management' ? 'Manage Admin Accounts' :
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
-                   `Manage ${tabs.find(tab => tab.id === activeTab)?.label || 'System'}`}
-                </p>
-              </div>
-            </div>
-<<<<<<< HEAD
-            <div className="flex items-center space-x-4">
               <div className="text-right">
-                <p className="text-white font-medium">Welcome back, {adminProfile?.name || currentUser?.name || 'Admin'}</p>
+                <p className="text-white font-medium">Welcome back, {currentUser?.name || 'Admin'}</p>
                 <p className="text-purple-200 text-sm">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
               </div>
-=======
-            <div className="text-right">
-              <p className="text-white font-medium">Welcome back, {currentUser?.name || 'Admin'}</p>
-              <p className="text-purple-200 text-sm">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
-            </div>
-          </motion.div>
-        </header>
+            </motion.div>
+          </header>
 
-        {/* Content */}
-        <div className="p-6">
-
-        {activeTab === 'dashboard' && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="space-y-6"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <motion.div 
+          {/* Content */}
+          <div className="p-6">
+            {activeTab === 'dashboard' && (
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300"
+                transition={{ duration: 0.5 }}
+                className="space-y-6"
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm font-medium">Total Students</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">{adminData.stats.totalStudents}</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-600 text-sm font-medium">Total Students</p>
+                        <p className="text-3xl font-bold text-gray-900 mt-1">{adminData.stats.totalStudents}</p>
+                      </div>
+                      <div className="h-14 w-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 016 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </motion.div>
+                   {/* HOD Requests Card */}
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300"
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">HOD Requests</h3>
+                    <div className={`h-3 w-3 rounded-full ${hodRequests.pending > 0 ? 'bg-orange-400 animate-pulse' : 'bg-green-400'} shadow-lg`}></div>
                   </div>
-                  <div className="h-14 w-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 016 0z" />
-                    </svg>
+                  <div className="grid grid-cols-4 gap-3 text-center mb-4">
+                    <div className="bg-orange-50 rounded-lg p-2">
+                      <p className="text-xl font-bold text-orange-600">{hodRequests.pending}</p>
+                      <p className="text-xs text-gray-600">Pending</p>
+                    </div>
+                    <div className="bg-green-50 rounded-lg p-2">
+                      <p className="text-xl font-bold text-green-600">{hodRequests.approved}</p>
+                      <p className="text-xs text-gray-600">Approved</p>
+                    </div>
+                    <div className="bg-red-50 rounded-lg p-2">
+                      <p className="text-xl font-bold text-red-600">{hodRequests.rejected}</p>
+                      <p className="text-xs text-gray-600">Rejected</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-2">
+                      <p className="text-xl font-bold text-gray-900">{hodRequests.total}</p>
+                      <p className="text-xs text-gray-600">Total</p>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-<<<<<<< HEAD
+                  <button 
+                    onClick={() => setActiveTab('hod')}
+                    className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2.5 px-4 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-200 font-medium shadow-lg"
+                  >
+                    Manage Requests
+                  </button>
+                </motion.div>
 
-              <motion.div 
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300"
+                >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-600 text-sm font-medium">Total Instructors</p>
+                        <p className="text-3xl font-bold text-gray-900 mt-1">{adminData.stats.totalStaff}</p>
+                      </div>
+                      <div className="h-14 w-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-gray-600 text-sm font-medium">Departments</p>
+                        <p className="text-3xl font-bold text-gray-900 mt-1">{adminData.stats.totalDepartments}</p>
+                      </div>
+                      <div className="h-14 w-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                        <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                  className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
+                >
+                  <NotificationPanel />
+                </motion.div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <motion.div 
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
+                  >
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Overview</h3>
+                    <div className="h-64">
+                      <Bar data={performanceChartData} options={{ responsive: true, maintainAspectRatio: false }} />
+                    </div>
+                  </motion.div>
+
+                  <motion.div 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
+                  >
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">System Health</h3>
+                    <SystemHealthWidget />
+                  </motion.div>
+                </div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                  className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
+                >
+                  <QuickActions />
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                  className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
+                >
+                  <AIInsights />
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.4 }}
+                  className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
+                >
+                  <ActivityFeed />
+                </motion.div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.5 }}
+                  className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
+                >
+                  <CalendarWidget />
+                </motion.div>
+              </motion.div>
+            )}
+
+            {activeTab === 'students' && <StudentManagement activeTab={activeTab} />}
+            {activeTab === 'instructors' && <TeacherManagement activeTab={activeTab} />}
+            {activeTab === 'principal' && <PrincipalManagement />}
+            {activeTab === 'departments' && <DepartmentManagement activeTab={activeTab} />}
+
+            {activeTab === 'results' && renderResultsTab()}
+            {activeTab === 'attendance' && <AdminAttendanceManagement />}
+
+            {activeTab === 'hod' && renderHodTab()}
+
+            {activeTab === 'events' && (
+              <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300"
+                transition={{ duration: 0.5 }}
+                className="bg-white p-6 rounded-xl shadow-lg border border-gray-100"
               >
-=======
-               {/* HOD Requests Card */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">HOD Requests</h3>
-                <div className={`h-3 w-3 rounded-full ${hodRequests.pending > 0 ? 'bg-orange-400 animate-pulse' : 'bg-green-400'} shadow-lg`}></div>
-              </div>
-              <div className="grid grid-cols-4 gap-3 text-center mb-4">
-                <div className="bg-orange-50 rounded-lg p-2">
-                  <p className="text-xl font-bold text-orange-600">{hodRequests.pending}</p>
-                  <p className="text-xs text-gray-600">Pending</p>
-                </div>
-                <div className="bg-green-50 rounded-lg p-2">
-                  <p className="text-xl font-bold text-green-600">{hodRequests.approved}</p>
-                  <p className="text-xs text-gray-600">Approved</p>
-                </div>
-                <div className="bg-red-50 rounded-lg p-2">
-                  <p className="text-xl font-bold text-red-600">{hodRequests.rejected}</p>
-                  <p className="text-xs text-gray-600">Rejected</p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-2">
-                  <p className="text-xl font-bold text-gray-900">{hodRequests.total}</p>
-                  <p className="text-xs text-gray-600">Total</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setActiveTab('hod')}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2.5 px-4 rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-200 font-medium shadow-lg"
+                <EventManagement />
+              </motion.div>
+            )}
+            {activeTab === 'announcements' && (
+              <motion.div
+                className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
               >
-                Manage Requests
-              </button>
-            </motion.div>
+                <h2 className="text-2xl font-bold text-blue-600 mb-4">📢 Manage Announcements</h2>
 
+                {/* Add Announcement Form */}
+                <form onSubmit={handleCreateAnnouncement} className="space-y-3 mb-6">
+                  <input
+                    type="text"
+                    placeholder="Title"
+                    value={newAnnouncement.title}
+                    onChange={(e) =>
+                      setNewAnnouncement({ ...newAnnouncement, title: e.target.value })
+                    }
+                    className="w-full p-2 border rounded-md dark:bg-gray-700"
+                    required
+                  />
+                  <textarea
+                    placeholder="Message"
+                    value={newAnnouncement.message}
+                    onChange={(e) =>
+                      setNewAnnouncement({ ...newAnnouncement, message: e.target.value })
+                    }
+                    className="w-full p-2 border rounded-md dark:bg-gray-700"
+                    rows={4}
+                    required
+                  />
+                  <button
+                    type="submit"
+                    className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
+                  >
+                    Add Announcement
+                  </button>
+                </form>
 
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300"
-            >
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm font-medium">Total Instructors</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">{adminData.stats.totalStaff}</p>
-                  </div>
-                  <div className="h-14 w-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
+                {/* Announcement List */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Existing Announcements</h3>
+                  {announcements.length > 0 ? (
+                    announcements.map((a: any, i: number) => (
+                      <div
+                        key={i}
+                        className="border-b border-gray-300 dark:border-gray-700 py-3 mb-3"
+                      >
+                        <h4 className="text-blue-600 font-bold">{a.title}</h4>
+                        <p className="text-gray-700 dark:text-gray-300">{a.message}</p>
+                        <p className="text-xs text-gray-400">
+                          Posted on: {new Date(a.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500">No announcements yet.</p>
+                  )}
                 </div>
               </motion.div>
-
-<<<<<<< HEAD
-              {/* HOD Requests Card */}
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 cursor-pointer"
-                onClick={() => setActiveTab('hod')}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <p className="text-gray-600 text-sm font-medium">HOD Requests</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">{hodRequests.pending}</p>
-                    <p className="text-xs text-gray-500 mt-1">Click to manage</p>
-                  </div>
-                  <div className="h-14 w-14 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-=======
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm font-medium">Departments</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">{adminData.stats.totalDepartments}</p>
-                  </div>
-                  <div className="h-14 w-14 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
-                    </svg>
-                  </div>
-                </div>
-              </motion.div>
-<<<<<<< HEAD
-              
-              <motion.div 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20 hover:shadow-2xl transition-all duration-300 cursor-pointer"
-                onClick={() => setActiveTab('admin-management')}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-gray-600 text-sm font-medium">Total Admins</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">3</p>
-                    <p className="text-xs text-gray-500 mt-1">Click to manage</p>
-                  </div>
-                  <div className="h-14 w-14 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                    </svg>
-                  </div>
-                </div>
-              </motion.div>
-=======
-
-
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
-            </div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
-            >
-              <NotificationPanel />
-            </motion.div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <motion.div 
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Performance Overview</h3>
-                <div className="h-64">
-                  <Bar data={performanceChartData} options={{ responsive: true, maintainAspectRatio: false }} />
-                </div>
-              </motion.div>
-
-              <motion.div 
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.3 }}
-                className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
-              >
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">System Health</h3>
-                <SystemHealthWidget />
-              </motion.div>
-            </div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
-            >
-              <QuickActions />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
-            >
-              <AIInsights />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
-            >
-              <ActivityFeed />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-              className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20"
-            >
-              <CalendarWidget />
-            </motion.div>
-
-          </motion.div>
-        )}
-
-        {activeTab === 'students' && <StudentManagement activeTab={activeTab} />}
-        {activeTab === 'instructors' && <TeacherManagement activeTab={activeTab} />}
-        {activeTab === 'principal' && <PrincipalManagement />}
-        {activeTab === 'departments' && <DepartmentManagement activeTab={activeTab} />}
-
-        {activeTab === 'results' && renderResultsTab()}
-        {activeTab === 'attendance' && <AdminAttendanceManagement />}
-
-        {activeTab === 'hod' && renderHodTab()}
-<<<<<<< HEAD
-        {activeTab === 'admin-management' && <AdminManagement activeTab={activeTab} />}
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
-
-        {activeTab === 'events' && (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5 }}
-    className="bg-white p-6 rounded-xl shadow-lg border border-gray-100"
-  >
-    <EventManagement />
-  </motion.div>
-)}
-<<<<<<< HEAD
-
-=======
-        
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
-        {activeTab === 'announcements' && (
-  <motion.div
-    className="p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md"
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-  >
-    <h2 className="text-2xl font-bold text-blue-600 mb-4">📢 Manage Announcements</h2>
-
-    {/* Add Announcement Form */}
-    <form onSubmit={handleCreateAnnouncement} className="space-y-3 mb-6">
-      <input
-        type="text"
-        placeholder="Title"
-        value={newAnnouncement.title}
-        onChange={(e) =>
-          setNewAnnouncement({ ...newAnnouncement, title: e.target.value })
-        }
-        className="w-full p-2 border rounded-md dark:bg-gray-700"
-        required
-      />
-      <textarea
-        placeholder="Message"
-        value={newAnnouncement.message}
-        onChange={(e) =>
-          setNewAnnouncement({ ...newAnnouncement, message: e.target.value })
-        }
-        className="w-full p-2 border rounded-md dark:bg-gray-700"
-        rows={4}
-        required
-      />
-      <button
-        type="submit"
-        className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
-      >
-        Add Announcement
-      </button>
-    </form>
-
-    {/* Announcement List */}
-    <div>
-      <h3 className="text-lg font-semibold mb-2">Existing Announcements</h3>
-      {announcements.length > 0 ? (
-        announcements.map((a: any, i: number) => (
-          <div
-            key={i}
-            className="border-b border-gray-300 dark:border-gray-700 py-3 mb-3"
-          >
-            <h4 className="text-blue-600 font-bold">{a.title}</h4>
-            <p className="text-gray-700 dark:text-gray-300">{a.message}</p>
-            <p className="text-xs text-gray-400">
-              Posted on: {new Date(a.created_at).toLocaleDateString()}
-            </p>
+            )}
           </div>
-        ))
-      ) : (
-        <p className="text-gray-500">No announcements yet.</p>
-      )}
-    </div>
-  </motion.div>
-)}
         </div>
-      </div>
       </div>
     </>
   );

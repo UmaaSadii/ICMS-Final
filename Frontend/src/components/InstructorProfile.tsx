@@ -1,17 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
-
-<<<<<<< HEAD
-// Utility function to decode HTML entities
-const decodeHtmlEntities = (text: string): string => {
-  const textarea = document.createElement('textarea');
-  textarea.innerHTML = text;
-  return textarea.value;
-};
-
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 const InstructorProfile: React.FC = () => {
   const [instructorData, setInstructorData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -21,17 +10,11 @@ const InstructorProfile: React.FC = () => {
     coursesTeaching: 0,
     experienceYears: 0
   });
-<<<<<<< HEAD
   const [timetable, setTimetable] = useState<any[]>([]);
 
   useEffect(() => {
     fetchInstructorProfile();
     fetchInstructorTimetable();
-=======
-
-  useEffect(() => {
-    fetchInstructorProfile();
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
   }, []);
 
   const fetchInstructorProfile = async () => {
@@ -59,10 +42,7 @@ const InstructorProfile: React.FC = () => {
         coursesTeaching: uniqueCourses,
         experienceYears: data.experience_years || 0
       });
-<<<<<<< HEAD
       setTimetable(timetables);
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       
     } catch (err) {
       console.error("Profile fetch error:", err);
@@ -71,7 +51,6 @@ const InstructorProfile: React.FC = () => {
     }
   };
 
-<<<<<<< HEAD
   const fetchInstructorTimetable = async () => {
     try {
       const token = JSON.parse(localStorage.getItem("auth") || "{}")?.access_token;
@@ -88,8 +67,6 @@ const InstructorProfile: React.FC = () => {
     }
   };
 
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -122,11 +99,7 @@ const InstructorProfile: React.FC = () => {
             <div className="relative">
               <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white">
                 <img
-<<<<<<< HEAD
-                  src={instructorData.image || "https://via.placeholder.com/150"}
-=======
                   src={instructorData.image ? `http://127.0.0.1:8000${instructorData.image}` : "https://via.placeholder.com/150"}
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />
@@ -182,46 +155,10 @@ const InstructorProfile: React.FC = () => {
           <div className="space-y-4">
             {[
               ["Email", (() => {
-<<<<<<< HEAD
-                // Try multiple possible email sources
-                let email = null;
-                
-                // Check user object first
-                if (instructorData.user && typeof instructorData.user === 'object') {
-                  email = instructorData.user.email;
-                }
-                
-                // Fallback to direct email fields
-                if (!email) {
-                  email = instructorData.email || instructorData.user_email;
-                }
-                
-                // Handle array case and string arrays
-                if (Array.isArray(email)) {
-                  email = email[0];
-                } else if (email && typeof email === 'string' && email.startsWith('[')) {
-                  // Handle string that looks like an array: "['email@domain.com']"
-                  try {
-                    const parsed = JSON.parse(email.replace(/'/g, '"'));
-                    email = Array.isArray(parsed) ? parsed[0] : email;
-                  } catch {
-                    // If JSON parsing fails, extract manually
-                    email = email.replace(/[\[\]'"]/g, '');
-                  }
-                }
-                
-                // Clean and decode HTML entities if email exists
-                if (email && typeof email === 'string') {
-                  email = email.replace(/[\[\]'"]/g, '');
-                  email = decodeHtmlEntities(email);
-                }
-                
-=======
                 const email = instructorData.user?.email || instructorData.email || instructorData.user_email;
                 if (Array.isArray(email)) {
                   return email[0] || "N/A";
                 }
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                 return email || "N/A";
               })()],
               ["Phone", instructorData.phone],
@@ -289,7 +226,6 @@ const InstructorProfile: React.FC = () => {
         ))}
       </div>
 
-<<<<<<< HEAD
       {/* Weekly Timetable */}
       {timetable.length > 0 && (
         <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
@@ -321,9 +257,6 @@ const InstructorProfile: React.FC = () => {
           </div>
         </div>
       )}
-
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       {/* Footer */}
       <div className="text-center py-4">
         <p className="text-sm text-gray-500">

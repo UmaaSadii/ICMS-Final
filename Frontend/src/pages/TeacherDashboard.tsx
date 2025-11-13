@@ -70,23 +70,15 @@ const TeacherDashboard = () => {
     const fetchInstructorData = async () => {
       try {
         // Fetch instructor profile using current user info
-<<<<<<< HEAD
         const authData = sessionStorage.getItem('auth') || localStorage.getItem('auth');
         const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken') || 
                      (authData ? JSON.parse(authData).access_token : null);
-=======
-        const token = localStorage.getItem('token');
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         console.log('Token:', token);
         console.log('Current user:', currentUser);
         
         if (token) {
           try {
-<<<<<<< HEAD
             const profileResponse = await fetch('http://127.0.0.1:8000/api/instructors/profile/', {
-=======
-            const profileResponse = await fetch('http://localhost:8000/api/instructors/profile/', {
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
               headers: {
                 'Authorization': `Token ${token}`,
                 'Content-Type': 'application/json'
@@ -96,7 +88,6 @@ const TeacherDashboard = () => {
             if (profileResponse.ok) {
               const profileData = await profileResponse.json();
               console.log('Instructor profile data:', profileData);
-<<<<<<< HEAD
               console.log('Image URL:', profileData.image);
               setInstructorProfile(profileData);
             } else {
@@ -105,11 +96,6 @@ const TeacherDashboard = () => {
               console.error('Error response:', errorText);
               // Set fallback name from timetable response if available
               setInstructorProfile({ name: 'Instructor' });
-=======
-              setInstructorProfile(profileData);
-            } else {
-              console.error('Profile fetch failed:', profileResponse.status, profileResponse.statusText);
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
             }
           } catch (error) {
             console.error('Profile fetch error:', error);
@@ -190,16 +176,12 @@ const TeacherDashboard = () => {
           </ul>
           <div className="mt-8">
             <button
-<<<<<<< HEAD
               onClick={() => {
                 // Only clear current tab's session, not other tabs
                 sessionStorage.removeItem('auth');
                 sessionStorage.removeItem('authToken');
                 logout();
               }}
-=======
-              onClick={logout}
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
               className="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors duration-200"
             >
               Logout
@@ -315,7 +297,6 @@ const TeacherDashboard = () => {
                 className="relative group cursor-pointer hover:scale-105 transition-transform duration-200"
                 title="View Profile"
               >
-<<<<<<< HEAD
                 {instructorProfile?.image ? (
                   <img
                     src={instructorProfile.image}
@@ -342,13 +323,6 @@ const TeacherDashboard = () => {
                     )}
                   </div>
                 )}
-=======
-                <div className="h-12 w-12 rounded-full border-2 border-white shadow-lg hover:border-indigo-200 transition-colors duration-200 bg-white flex items-center justify-center">
-                  <svg className="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                 <div className="absolute -bottom-1 -right-1 h-4 w-4 bg-green-400 border-2 border-white rounded-full animate-pulse"></div>
               </button>
               
@@ -360,11 +334,7 @@ const TeacherDashboard = () => {
                   <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
                   </svg>
-<<<<<<< HEAD
                   Welcome back, {instructorProfile?.name || 'Instructor'}
-=======
-                  Welcome back, {instructorProfile?.name || currentUser?.username || 'Instructor'}
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                 </p>
               </div>
             </div>

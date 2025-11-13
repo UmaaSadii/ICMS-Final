@@ -26,13 +26,6 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
   const [activeSlot, setActiveSlot] = useState<any>(null);
   const [canSubmit, setCanSubmit] = useState(false);
   const [slotStatus, setSlotStatus] = useState('');
-<<<<<<< HEAD
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedStudentForEdit, setSelectedStudentForEdit] = useState<Student | null>(null);
-  const [editReason, setEditReason] = useState('');
-  const [newStatus, setNewStatus] = useState<'Present' | 'Absent' | 'Late'>('Present');
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
   // Dynamic week generation based on current date
   const generateWeekDays = () => {
@@ -44,37 +37,17 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
     monday.setDate(today.getDate() + mondayOffset);
     
     const weekDays = [];
-<<<<<<< HEAD
-    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-    
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(monday);
-      date.setDate(monday.getDate() + (i === 6 ? -1 : i)); // Sunday comes last
-      const dayIndex = i === 6 ? 0 : i + 1; // Adjust for Sunday
-=======
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     
     for (let i = 0; i < 7; i++) {
       const date = new Date(monday);
       date.setDate(monday.getDate() + i);
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       
       const isToday = date.toDateString() === today.toDateString();
       const isPast = date < today && !isToday;
       const isFuture = date > today;
       
       weekDays.push({
-<<<<<<< HEAD
-        day: dayNames[dayIndex],
-        date: date.getDate().toString(),
-        month: date.toLocaleDateString('en-US', { month: 'short' }),
-        fullDate: date.toISOString().split('T')[0],
-        key: `${dayNames[dayIndex]}-${date.getDate()}`,
-        isToday,
-        isPast,
-        isFuture,
-        isEditable: isToday || (isPast && date >= new Date(today.getTime() - 24 * 60 * 60 * 1000)) // Today or yesterday
-=======
         day: dayNames[i],
         date: date.getDate().toString(),
         month: date.toLocaleDateString('en-US', { month: 'short' }),
@@ -84,7 +57,6 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
         isPast,
         isFuture,
         isEditable: isToday // Only today is editable
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       });
     }
     
@@ -151,26 +123,15 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
       });
 
       let activeTimetableId: number | null = null;
-<<<<<<< HEAD
-      // Always allow submission regardless of slots
-      setCanSubmit(true);
-      setSlotStatus('Ready - You can submit attendance anytime');
-      
-      if (slotsResponse.ok) {
-        const slotsData = await slotsResponse.json();
-=======
       if (slotsResponse.ok) {
         const slotsData = await slotsResponse.json();
         console.log('Instructor slots:', slotsData);
 
         // Find active slot for today
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         const currentSlot = slotsData.slots?.find((slot: any) => slot.is_active);
         if (currentSlot) {
           activeTimetableId = currentSlot.timetable_id;
           setActiveSlot(currentSlot);
-<<<<<<< HEAD
-=======
           
           // Check if slot is ongoing and can submit
           const now = new Date();
@@ -194,7 +155,6 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
           setCanSubmit(false);
           setSlotStatus('No active slot assigned');
           console.log('No active slot found for today');
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         }
       }
 
@@ -265,8 +225,6 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
     }
   };
 
-
-
   const updateAttendance = (studentId: string, dayKey: string, status: 'P' | 'A' | 'L') => {
     setStudents(prev => prev.map(student => 
       student.id === studentId 
@@ -305,23 +263,6 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
     if (students.length === 0) return;
 
     try {
-<<<<<<< HEAD
-      const validStudents = students.filter(student => student.id && student.id.trim() !== '');
-      
-      if (validStudents.length === 0) {
-        alert('No valid students found to mark attendance');
-        return;
-      }
-      
-      const attendanceData = validStudents.map(student => ({
-        student_id: student.id,
-        status: student.status || 'Present'
-      }));
-      
-      console.log('Submit attendance data:', attendanceData);
-
-      const response = await fetch('http://127.0.0.1:8000/api/instructors/attendance/test-bulk/', {
-=======
       const timetableId = students[0]?.timetable_id;
 
       if (!timetableId) {
@@ -335,20 +276,14 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
       }));
 
       const response = await fetch('http://localhost:8000/api/academics/attendance/slot/mark/', {
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Token ${JSON.parse(localStorage.getItem('auth') || '{}').access_token}`,
         },
         body: JSON.stringify({
-<<<<<<< HEAD
-          date: new Date().toISOString().split('T')[0],
-          attendances: attendanceData
-=======
           timetable_id: timetableId,
           attendance_data: attendanceData
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         })
       });
 
@@ -369,65 +304,15 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
     if (students.length === 0) return;
 
     try {
-<<<<<<< HEAD
-      // First mark attendance - filter out students with blank IDs
-      const validStudents = students.filter(student => student.id && student.id.trim() !== '');
-      
-      if (validStudents.length === 0) {
-        alert('No valid students found to mark attendance');
-        return;
-      }
-      
-      const attendanceData = validStudents.map(student => ({
-        student_id: student.id,
-        status: student.status || 'Present'
-      }));
-      
-      console.log('Attendance data:', attendanceData);
-
-      const markResponse = await fetch('http://127.0.0.1:8000/api/instructors/attendance/test-bulk/', {
-=======
       const timetableId = students[0]?.timetable_id;
 
       const response = await fetch('http://localhost:8000/api/academics/attendance/slot/submit/', {
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Token ${JSON.parse(localStorage.getItem('auth') || '{}').access_token}`,
         },
         body: JSON.stringify({
-<<<<<<< HEAD
-          date: new Date().toISOString().split('T')[0],
-          attendances: attendanceData
-        })
-      });
-
-      if (!markResponse.ok) {
-        const error = await markResponse.json();
-        alert(`Error marking attendance: ${error.error}`);
-        return;
-      }
-
-      // Then submit/lock attendance
-      const submitResponse = await fetch('http://127.0.0.1:8000/api/instructors/attendance/test-submit/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Token ${JSON.parse(localStorage.getItem('auth') || '{}').access_token}`,
-        },
-        body: JSON.stringify({
-          date: new Date().toISOString().split('T')[0]
-        })
-      });
-
-      if (submitResponse.ok) {
-        alert('Attendance marked and finalized! Admin permission required for further edits.');
-        setStudents([]);
-      } else {
-        const error = await submitResponse.json();
-        alert(`Error finalizing: ${error.error}`);
-=======
           timetable_id: timetableId
         })
       });
@@ -438,16 +323,11 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
       } else {
         const error = await response.json();
         alert(`Error: ${error.error}`);
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       }
     } catch (error) {
       console.error('Error finalizing attendance:', error);
     }
   };
-
-
-
-
 
   if (!filters.departmentId || !filters.semesterId) {
     return (
@@ -515,16 +395,6 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
               >
                 Submit and Lock
               </button>
-<<<<<<< HEAD
-              <button
-                onClick={() => setShowEditModal(true)}
-                className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
-              >
-                Request Edit
-              </button>
-
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
             </div>
           </div>
         </div>
@@ -565,26 +435,6 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
                     </td>
                     {weekDays.map(day => (
                       <td key={day.key} className="py-4 px-2 text-center">
-<<<<<<< HEAD
-                        {day.isEditable ? (
-                          <div className="flex items-center justify-center">
-                            <select
-                              value={student.weeklyAttendance[day.key] || 'P'}
-                              onChange={(e) => updateAttendance(student.id, day.key, e.target.value as 'P' | 'A' | 'L')}
-                              className={`w-12 h-8 text-xs font-bold border rounded focus:ring-2 focus:border-transparent ${
-                                day.isToday 
-                                  ? 'border-blue-500 bg-blue-50 focus:ring-blue-500' 
-                                  : 'border-gray-300 focus:ring-gray-500'
-                              }`}
-                              disabled={day.isFuture}
-                            >
-                              <option value="P">P</option>
-                              <option value="A">A</option>
-                              <option value="L">L</option>
-                            </select>
-
-                          </div>
-=======
                         {day.isToday ? (
                           <select
                             value={student.weeklyAttendance[day.key] || 'P'}
@@ -595,7 +445,6 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
                             <option value="A">A</option>
                             <option value="L">L</option>
                           </select>
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                         ) : (
                           <span className={`${getStatusBadge(student.weeklyAttendance[day.key])} ${
                             day.isFuture ? 'opacity-50' : ''
@@ -615,193 +464,8 @@ const AttendanceMarkCard: React.FC<AttendanceMarkCardProps> = ({ filters }) => {
               </tbody>
             </table>
           </div>
-
-
         </div>
       </motion.div>
-<<<<<<< HEAD
-
-      {/* Professional Edit Request Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-6 text-gray-900">Request Attendance Edit</h3>
-            
-            <div className="mb-6">
-              <div className="flex items-center space-x-4 mb-4">
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="editType"
-                    value="single"
-                    checked={selectedStudentForEdit !== null}
-                    onChange={() => setSelectedStudentForEdit(students[0] || null)}
-                    className="mr-2"
-                  />
-                  Edit Single Student
-                </label>
-                <label className="flex items-center">
-                  <input
-                    type="radio"
-                    name="editType"
-                    value="bulk"
-                    checked={selectedStudentForEdit === null}
-                    onChange={() => setSelectedStudentForEdit(null)}
-                    className="mr-2"
-                  />
-                  Bulk Edit Request
-                </label>
-              </div>
-            </div>
-
-            {selectedStudentForEdit ? (
-              /* Single Student Edit */
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">Select Student</label>
-                  <select
-                    value={selectedStudentForEdit.id}
-                    onChange={(e) => {
-                      const student = students.find(s => s.id === e.target.value);
-                      setSelectedStudentForEdit(student || null);
-                      setNewStatus(student?.status || 'Present');
-                    }}
-                    className="w-full p-2 border rounded"
-                  >
-                    {students.map(student => (
-                      <option key={student.id} value={student.id}>
-                        {student.name} - Current: {student.status}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">New Status</label>
-                  <select
-                    value={newStatus}
-                    onChange={(e) => setNewStatus(e.target.value as 'Present' | 'Absent' | 'Late')}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="Present">Present</option>
-                    <option value="Absent">Absent</option>
-                    <option value="Late">Late</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Reason for Change</label>
-                  <textarea
-                    value={editReason}
-                    onChange={(e) => setEditReason(e.target.value)}
-                    placeholder="Please provide a detailed reason for this attendance change..."
-                    rows={3}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
-                </div>
-              </div>
-            ) : (
-              /* Bulk Edit Request */
-              <div className="space-y-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-blue-900 mb-2">Bulk Edit Request</h4>
-                  <p className="text-sm text-blue-700">Request permission to edit attendance for multiple students or the entire class.</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Request Type</label>
-                  <select
-                    value={newStatus}
-                    onChange={(e) => setNewStatus(e.target.value as 'Present' | 'Absent' | 'Late')}
-                    className="w-full p-2 border rounded"
-                  >
-                    <option value="Present">Mark All Present</option>
-                    <option value="Absent">Mark All Absent</option>
-                    <option value="Late">Mark All Late</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">Reason for Bulk Change</label>
-                  <textarea
-                    value={editReason}
-                    onChange={(e) => setEditReason(e.target.value)}
-                    placeholder="Please provide a detailed reason for this bulk attendance change (e.g., technical issues, emergency, etc.)..."
-                    rows={4}
-                    className="w-full p-2 border rounded"
-                    required
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="flex space-x-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditReason('');
-                  setSelectedStudentForEdit(null);
-                }}
-                className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={async () => {
-                  if (!editReason.trim()) {
-                    alert('Please provide a reason for the edit request');
-                    return;
-                  }
-                  
-                  try {
-                    const requestData = selectedStudentForEdit ? {
-                      type: 'single',
-                      student_id: selectedStudentForEdit.id,
-                      student_name: selectedStudentForEdit.name,
-                      current_status: selectedStudentForEdit.status,
-                      proposed_status: newStatus,
-                      reason: editReason,
-                      date: new Date().toISOString().split('T')[0]
-                    } : {
-                      type: 'bulk',
-                      student_count: students.length,
-                      proposed_status: newStatus,
-                      reason: editReason,
-                      date: new Date().toISOString().split('T')[0],
-                      students: students.map(s => ({ id: s.id, name: s.name, current_status: s.status }))
-                    };
-
-                    const response = await fetch('http://127.0.0.1:8000/api/academics/attendance/edit-request/', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Token ${JSON.parse(localStorage.getItem('auth') || '{}').access_token}`,
-                      },
-                      body: JSON.stringify(requestData)
-                    });
-                    
-                    if (response.ok) {
-                      const result = await response.json();
-                      alert(`Edit request submitted successfully! Request ID: ${result.request_id || 'N/A'}`);
-                      setShowEditModal(false);
-                      setEditReason('');
-                      setSelectedStudentForEdit(null);
-                    } else {
-                      const error = await response.json();
-                      alert(`Error: ${error.error || 'Failed to submit request'}`);
-                    }
-                  } catch (error) {
-                    console.error('Error submitting edit request:', error);
-                    alert('Failed to submit edit request. Please try again.');
-                  }
-                }}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Submit Request to Admin
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
     </div>
   );
 };

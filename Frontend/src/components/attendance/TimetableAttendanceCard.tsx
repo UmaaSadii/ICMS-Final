@@ -14,11 +14,8 @@ interface TimetableSlot {
   room: string;
   students_count: number;
   can_mark_attendance: boolean;
-<<<<<<< HEAD
   is_submitted?: boolean;
   time_remaining?: number;
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 }
 
 interface Student {
@@ -26,11 +23,8 @@ interface Student {
   name: string;
   email: string;
   status: 'Present' | 'Absent' | 'Late';
-<<<<<<< HEAD
   is_marked?: boolean;
   can_edit?: boolean;
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 }
 
 const TimetableAttendanceCard: React.FC = () => {
@@ -49,7 +43,6 @@ const TimetableAttendanceCard: React.FC = () => {
 
   const fetchActiveSlots = async () => {
     try {
-<<<<<<< HEAD
       const instructorId = localStorage.getItem('instructor_id') || '1';
       const token = localStorage.getItem('authToken');
       const response = await fetch(`http://localhost:8000/api/academics/attendance/timetable/active/?instructor_id=${instructorId}`, {
@@ -58,17 +51,12 @@ const TimetableAttendanceCard: React.FC = () => {
           'Content-Type': 'application/json'
         }
       });
-=======
-      const instructorId = localStorage.getItem('instructor_id') || '1'; // Get from auth context
-      const response = await fetch(`http://localhost:8000/api/academics/attendance/timetable/active/?instructor_id=${instructorId}`);
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       
       if (response.ok) {
         const data = await response.json();
         setActiveSlots(data.active_slots);
         setCurrentTime(data.current_time);
         setCurrentDay(data.current_day);
-<<<<<<< HEAD
         
         if (data.message) {
           console.log('Info:', data.message);
@@ -76,8 +64,6 @@ const TimetableAttendanceCard: React.FC = () => {
       } else {
         const error = await response.json();
         console.error('Error fetching active slots:', error.error);
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       }
     } catch (error) {
       console.error('Error fetching active slots:', error);
@@ -87,7 +73,6 @@ const TimetableAttendanceCard: React.FC = () => {
   const fetchStudentsForSlot = async (slot: TimetableSlot) => {
     setLoading(true);
     try {
-<<<<<<< HEAD
       const token = localStorage.getItem('authToken');
       const response = await fetch(`http://localhost:8000/api/academics/attendance/timetable/${slot.timetable_id}/students/`, {
         headers: {
@@ -114,23 +99,6 @@ const TimetableAttendanceCard: React.FC = () => {
     } catch (error) {
       console.error('Error fetching students:', error);
       alert('Failed to fetch students');
-=======
-      // Fetch students based on department and semester from the slot
-      const response = await fetch(`http://localhost:8000/api/students/?department_id=${slot.department}&semester_id=${slot.semester}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        const formattedStudents = data.map((student: any) => ({
-          student_id: student.student_id,
-          name: student.name || `${student.first_name || ''} ${student.last_name || ''}`.trim(),
-          email: student.email || 'No email',
-          status: 'Present' as const
-        }));
-        setStudents(formattedStudents);
-      }
-    } catch (error) {
-      console.error('Error fetching students:', error);
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
     } finally {
       setLoading(false);
     }
@@ -160,10 +128,7 @@ const TimetableAttendanceCard: React.FC = () => {
 
     try {
       const instructorId = localStorage.getItem('instructor_id') || '1';
-<<<<<<< HEAD
       const token = localStorage.getItem('authToken');
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       const attendanceData = students.map(student => ({
         student_id: student.student_id,
         status: student.status
@@ -172,10 +137,7 @@ const TimetableAttendanceCard: React.FC = () => {
       const response = await fetch('http://localhost:8000/api/academics/attendance/timetable/mark/', {
         method: 'POST',
         headers: {
-<<<<<<< HEAD
           'Authorization': `Token ${token}`,
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -186,7 +148,6 @@ const TimetableAttendanceCard: React.FC = () => {
       });
 
       if (response.ok) {
-<<<<<<< HEAD
         const result = await response.json();
         alert('Attendance saved successfully!');
         if (result.warnings && result.warnings.length > 0) {
@@ -194,9 +155,6 @@ const TimetableAttendanceCard: React.FC = () => {
         }
         // Refresh students data
         fetchStudentsForSlot(selectedSlot);
-=======
-        alert('Attendance marked successfully!');
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       } else {
         const error = await response.json();
         alert(`Error: ${error.error}`);
@@ -210,7 +168,6 @@ const TimetableAttendanceCard: React.FC = () => {
   const finalizeAttendance = async () => {
     if (!selectedSlot) return;
 
-<<<<<<< HEAD
     if (!window.confirm('Are you sure you want to finalize attendance? This will lock all records and require admin approval for any changes.')) {
       return;
     }
@@ -222,13 +179,6 @@ const TimetableAttendanceCard: React.FC = () => {
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
-=======
-    try {
-      const instructorId = localStorage.getItem('instructor_id') || '1';
-      const response = await fetch('http://localhost:8000/api/academics/attendance/timetable/submit/', {
-        method: 'POST',
-        headers: {
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -238,7 +188,6 @@ const TimetableAttendanceCard: React.FC = () => {
       });
 
       if (response.ok) {
-<<<<<<< HEAD
         const result = await response.json();
         alert(result.message);
         setSelectedSlot(null);
@@ -250,14 +199,6 @@ const TimetableAttendanceCard: React.FC = () => {
     } catch (error) {
       console.error('Error finalizing attendance:', error);
       alert('Failed to finalize attendance');
-=======
-        alert('Attendance finalized! No further edits allowed without admin permission.');
-        setSelectedSlot(null);
-        fetchActiveSlots();
-      }
-    } catch (error) {
-      console.error('Error finalizing attendance:', error);
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
     }
   };
 
@@ -270,10 +211,7 @@ const TimetableAttendanceCard: React.FC = () => {
         <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Classes</h3>
         <p className="text-gray-600">You don't have any active classes right now.</p>
         <p className="text-sm text-gray-500 mt-2">Current time: {currentTime} ({currentDay})</p>
-<<<<<<< HEAD
         <p className="text-xs text-gray-400 mt-1">Attendance can only be marked during assigned time slots</p>
-=======
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       </div>
     );
   }
@@ -327,15 +265,9 @@ const TimetableAttendanceCard: React.FC = () => {
                 </button>
                 <button
                   onClick={finalizeAttendance}
-<<<<<<< HEAD
                   className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm font-semibold"
                 >
                   🔒 Finalize & Lock
-=======
-                  className="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-sm"
-                >
-                  Finalize
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                 </button>
               </div>
             </div>
@@ -373,7 +305,6 @@ const TimetableAttendanceCard: React.FC = () => {
                           </div>
                         </td>
                         <td className="py-4 px-4 text-center">
-<<<<<<< HEAD
                           <div className="flex items-center justify-center gap-2">
                             <select
                               value={student.status}
@@ -394,17 +325,6 @@ const TimetableAttendanceCard: React.FC = () => {
                               <span className="text-xs text-gray-500">🔒</span>
                             )}
                           </div>
-=======
-                          <select
-                            value={student.status}
-                            onChange={(e) => updateStudentStatus(student.student_id, e.target.value as 'Present' | 'Absent' | 'Late')}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          >
-                            <option value="Present">Present</option>
-                            <option value="Absent">Absent</option>
-                            <option value="Late">Late</option>
-                          </select>
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                         </td>
                       </motion.tr>
                     ))}
@@ -432,17 +352,12 @@ const TimetableAttendanceCard: React.FC = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-<<<<<<< HEAD
             onClick={() => slot.can_mark_attendance && handleSlotSelect(slot)}
             className={`bg-white rounded-2xl shadow-lg p-6 transition-all duration-200 border border-gray-100 ${
               slot.can_mark_attendance 
                 ? 'cursor-pointer hover:shadow-xl hover:-translate-y-1' 
                 : 'cursor-not-allowed opacity-60'
             }`}
-=======
-            onClick={() => handleSlotSelect(slot)}
-            className="bg-white rounded-2xl shadow-lg p-6 cursor-pointer hover:shadow-xl transition-all duration-200 hover:-translate-y-1 border border-gray-100"
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
           >
             <div className="flex items-center justify-between mb-4">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
@@ -450,7 +365,6 @@ const TimetableAttendanceCard: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                 </svg>
               </div>
-<<<<<<< HEAD
               <div className="flex flex-col items-end gap-1">
                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                   slot.is_submitted 
@@ -465,11 +379,6 @@ const TimetableAttendanceCard: React.FC = () => {
                   </span>
                 )}
               </div>
-=======
-              <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
-                Active Now
-              </span>
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
             </div>
             
             <h3 className="text-lg font-semibold text-gray-900 mb-2">{slot.course.name}</h3>

@@ -137,42 +137,6 @@ const Register = () => {
       return;
     }
 
-<<<<<<< HEAD
-    // Create user data based on role
-    let userData;
-    
-    if (form.role === 'hod') {
-      // HOD-specific data structure
-      userData = {
-        name: `${form.first_name} ${form.last_name}`.trim(),
-        email: form.email,
-        employee_id: form.employee_id,
-        phone: form.phone,
-        department_id: form.department_id,
-        designation: form.designation,
-        experience_years: form.experience_years,
-        specialization: form.specialization,
-        password: form.password,
-        confirm_password: form.confirm_password
-      };
-    } else {
-      // Regular user data structure
-      userData = {
-        username: form.username,
-        email: form.email,
-        password: form.password,
-        confirm_password: form.confirm_password,
-        role: form.role,
-        first_name: form.first_name,
-        last_name: form.last_name
-      };
-    }
-    
-    try {
-      // For HOD registration, use dedicated HOD endpoint
-      if (form.role === 'hod') {
-        const response = await fetch('http://localhost:8000/api/hods/registration/', {
-=======
     // Create a complete user object that matches the Person model
     const userData = {
       username: form.username,
@@ -195,7 +159,6 @@ const Register = () => {
       // For HOD registration, handle response differently
       if (form.role === 'hod') {
         const response = await fetch('http://localhost:8000/api/register/registration/', {
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -209,11 +172,7 @@ const Register = () => {
           setRegistrationSuccess(true);
           setSuccessMessage(data.message);
         } else {
-<<<<<<< HEAD
-          setError(data.error || Object.values(data)[0] || 'Registration failed');
-=======
           setError(data.hod_fields?.[0] || data.error || 'Registration failed');
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         }
       } else {
         // Regular registration through AuthContext

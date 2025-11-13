@@ -3,17 +3,11 @@ import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import { instructorService } from '../api/studentInstructorService';
 import TimetableManagement from '../components/TimetableManagement';
-<<<<<<< HEAD
-
-type TabId = 'dashboard' | 'instructors' | 'attendance' | 'timetable' | 'my-attendance';
-=======
 import InstructorProfile from '../components/InstructorProfile';
 import HODProfile from '../components/HODProfile';
 import HODFeedbackModal from "../components/HODFeedbackModal";
 
-
 type TabId = 'dashboard' | 'instructors' | 'attendance' | 'timetable' | 'my-attendance' | 'profile';
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
 const HODDashboard = () => {
   const { currentUser, logout } = useAuth();
@@ -23,11 +17,7 @@ const HODDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [hodProfile, setHodProfile] = useState<any>(null);
-<<<<<<< HEAD
-=======
   const [openFeedbackModal, setOpenFeedbackModal] = useState(false);
-
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
 
   // Load real data
   useEffect(() => {
@@ -50,20 +40,6 @@ const HODDashboard = () => {
 
   const loadHODProfile = async () => {
     try {
-<<<<<<< HEAD
-      const token = JSON.parse(sessionStorage.getItem("auth") || localStorage.getItem("auth") || "{}")?.access_token;
-      if (token) {
-        const response = await fetch('http://127.0.0.1:8000/api/hods/profile/', {
-          headers: { 'Authorization': `Token ${token}` }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setHodProfile(data);
-        } else {
-          console.error('Failed to fetch HOD profile:', response.status);
-=======
-      // Get HOD profile using current user info
       const token = localStorage.getItem('token');
       if (token) {
         const profileResponse = await fetch('http://localhost:8000/api/instructors/profile/', {
@@ -79,7 +55,6 @@ const HODDashboard = () => {
           setHodProfile(profileData);
         } else {
           console.error('Profile fetch failed:', profileResponse.status, profileResponse.statusText);
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         }
       }
     } catch (error) {
@@ -89,13 +64,8 @@ const HODDashboard = () => {
 
   const markInstructorAttendance = async (instructorId: number, status: string) => {
     try {
-<<<<<<< HEAD
-      const token = JSON.parse(sessionStorage.getItem("auth") || localStorage.getItem("auth") || "{}")?.access_token || sessionStorage.getItem('token') || localStorage.getItem('token');
-      await fetch('http://127.0.0.1:8000/api/academics/hod/attendance/', {
-=======
       const token = localStorage.getItem('token');
       await fetch('http://localhost:8000/api/academics/hod/attendance/', {
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         method: 'POST',
         headers: {
           'Authorization': `Token ${token}`,
@@ -117,11 +87,7 @@ const HODDashboard = () => {
     { id: 'timetable', label: 'Timetable', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' }
   ];
 
-<<<<<<< HEAD
-=======
   const profileTab = { id: 'profile', label: 'My Profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' };
-
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
   const renderSidebar = () => (
     <div className="w-64 bg-gradient-to-b from-purple-800 to-indigo-900 text-white p-4 space-y-2 min-h-screen shadow-xl">
       <div className="mb-8 text-center">
@@ -157,8 +123,6 @@ const HODDashboard = () => {
               </button>
             </li>
           ))}
-<<<<<<< HEAD
-=======
           <li>
             <button
               onClick={() => setActiveTab('profile')}
@@ -172,7 +136,6 @@ const HODDashboard = () => {
               <span>{profileTab.label}</span>
             </button>
           </li>
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
         </ul>
         <div className="mt-8">
           <button
@@ -284,13 +247,8 @@ const HODDashboard = () => {
   const deleteInstructor = async (instructorId: number, instructorName: string) => {
     if (window.confirm(`Are you sure you want to delete ${instructorName}? This action cannot be undone.`)) {
       try {
-<<<<<<< HEAD
-        const token = JSON.parse(sessionStorage.getItem("auth") || localStorage.getItem("auth") || "{}")?.access_token || sessionStorage.getItem('token') || localStorage.getItem('token');
-        const response = await fetch(`http://127.0.0.1:8000/api/instructors/${instructorId}/`, {
-=======
         const token = localStorage.getItem('token');
         const response = await fetch(`http://localhost:8000/api/instructors/${instructorId}/`, {
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
           method: 'DELETE',
           headers: {
             'Authorization': `Token ${token}`,
@@ -408,8 +366,6 @@ const HODDashboard = () => {
             <p className="text-gray-600">Your attendance record will be displayed here...</p>
           </motion.div>
         );
-<<<<<<< HEAD
-=======
       case 'profile':
         return (
           <motion.div
@@ -419,7 +375,6 @@ const HODDashboard = () => {
             <HODProfile />
           </motion.div>
         );
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
       default:
         return renderDashboard();
     }
@@ -433,28 +388,16 @@ const HODDashboard = () => {
         <header className="bg-gradient-to-r from-purple-600 to-indigo-600 shadow-lg border-b border-purple-300 px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-<<<<<<< HEAD
-              {/* Profile Picture */}
               <button
-                onClick={() => setShowProfileModal(true)}
-                className="relative group cursor-pointer hover:scale-105 transition-transform duration-200"
-                title="View Profile"
+                onClick={() => setOpenFeedbackModal(true)}
+                className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md shadow-md"
               >
-                {hodProfile?.image ? (
-                  <img
-                    src={hodProfile.image}
-=======
-              <button
-             onClick={() => setOpenFeedbackModal(true)}
-            className="bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-md shadow-md"
-             >
-             View Feedbacks
-             </button>
-             <HODFeedbackModal
-  isOpen={openFeedbackModal}
-  onClose={() => setOpenFeedbackModal(false)}
-/>
-
+                View Feedbacks
+              </button>
+              <HODFeedbackModal
+                isOpen={openFeedbackModal}
+                onClose={() => setOpenFeedbackModal(false)}
+              />
 
               {/* Profile Picture */}
               <button
@@ -468,7 +411,6 @@ const HODDashboard = () => {
                 {hodProfile?.image ? (
                   <img
                     src={hodProfile.image.startsWith('http') ? hodProfile.image : `http://localhost:8000${hodProfile.image}`}
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
                     alt="Profile"
                     className="h-12 w-12 rounded-full border-2 border-white shadow-lg hover:border-purple-200 transition-colors duration-200 object-cover"
                     onError={(e) => {
@@ -549,134 +491,7 @@ const HODDashboard = () => {
               </button>
             </div>
             <div className="p-6">
-<<<<<<< HEAD
-              {hodProfile ? (
-                <div className="space-y-6">
-                  {/* Main Profile Card */}
-                  <div className="bg-gradient-to-br from-purple-500 via-indigo-500 to-blue-500 rounded-3xl shadow-2xl p-8 text-white relative overflow-hidden">
-                    {/* Background Pattern */}
-                    <div className="absolute inset-0 opacity-10">
-                      <div className="absolute top-0 left-0 w-40 h-40 bg-white rounded-full -translate-x-20 -translate-y-20"></div>
-                      <div className="absolute bottom-0 right-0 w-60 h-60 bg-white rounded-full translate-x-20 translate-y-20"></div>
-                    </div>
-                    
-                    <div className="relative z-10">
-                      <div className="flex flex-col md:flex-row items-center gap-8">
-                        {/* Profile Image */}
-                        <div className="relative">
-                          <div className="w-32 h-32 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white">
-                            {hodProfile.image ? (
-                              <img
-                                src={hodProfile.image}
-                                alt="Profile"
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-purple-100">
-                                <span className="text-4xl font-bold text-purple-600">
-                                  {hodProfile.name?.charAt(0) || 'H'}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="absolute -bottom-2 -right-2 bg-green-400 w-8 h-8 rounded-full border-4 border-white flex items-center justify-center">
-                            <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          </div>
-                        </div>
-
-                        {/* Profile Info */}
-                        <div className="text-center md:text-left flex-1">
-                          <h1 className="text-3xl font-bold mb-2">{hodProfile.name}</h1>
-                          <p className="text-xl opacity-90 mb-1">{hodProfile.designation}</p>
-                          <p className="text-lg opacity-80 mb-3">{hodProfile.department?.name || 'Department'}</p>
-                          <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-                            <span className="px-3 py-1 bg-white bg-opacity-20 rounded-full text-sm font-medium">
-                              ID: {hodProfile.employee_id}
-                            </span>
-                            <span className="px-3 py-1 bg-white bg-opacity-20 rounded-full text-sm font-medium">
-                              {hodProfile.experience_years}+ Years Experience
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Detailed Information Cards */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Personal Information */}
-                    <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-                      <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-                        <svg className="w-6 h-6 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        Personal Information
-                      </h2>
-                      
-                      <div className="space-y-4">
-                        {[
-                          ["Email", hodProfile.email],
-                          ["Phone", hodProfile.phone],
-                          ["Employee ID", hodProfile.employee_id],
-                          ["Hire Date", hodProfile.hire_date ? new Date(hodProfile.hire_date).toLocaleDateString() : "N/A"]
-                        ].map(([label, value], idx) => (
-                          <div
-                            key={idx}
-                            className="flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                          >
-                            <span className="font-medium text-gray-600">{label}</span>
-                            <span className="text-gray-800 text-right max-w-xs truncate">{value || "N/A"}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Professional Information */}
-                    <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-                      <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-                        <svg className="w-6 h-6 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2V6" />
-                        </svg>
-                        Professional Details
-                      </h2>
-                      
-                      <div className="space-y-4">
-                        {[
-                          ["Department", hodProfile.department?.name],
-                          ["Designation", hodProfile.designation],
-                          ["Specialization", hodProfile.specialization],
-                          ["Experience", `${hodProfile.experience_years} years`],
-                          ["Status", "Active"]
-                        ].map(([label, value], idx) => (
-                          <div
-                            key={idx}
-                            className="flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                          >
-                            <span className="font-medium text-gray-600">{label}</span>
-                            <span className="text-gray-800 font-semibold">{value || "N/A"}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Footer */}
-                  <div className="text-center py-4">
-                    <p className="text-sm text-gray-500">
-                      Profile last updated on <span className="font-medium text-purple-600">{new Date().toLocaleDateString()}</span>
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex justify-center items-center h-64">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-                </div>
-              )}
-=======
               <HODProfile />
->>>>>>> 3d3a4f2babdb60e79974b0213dc7f76ad7cfd119
             </div>
           </motion.div>
         </div>
